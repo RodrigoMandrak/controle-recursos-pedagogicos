@@ -5,11 +5,9 @@ from banco import conectar
 app = Flask(__name__)
 CORS(app)
 
-
 @app.route("/")
 def inicio():
     return "Sistema de Controle de Recursos Pedagogicos"
-
 
 @app.route("/atividades", methods=["POST"])
 def cadastrar():
@@ -48,21 +46,20 @@ def cadastrar():
 
     return jsonify({"mensagem": "Atividade cadastrada"})
 
-
 @app.route("/atividades", methods=["GET"])
 def listar():
     banco = conectar()
     cursor = banco.cursor()
 
     cursor.execute("""
-    SELECT a.id, d.nome, t.nome, p.nome,
-    a.descricao, a.data, a.hora_inicio, a.hora_fim
-    FROM atividades a
-    JOIN disciplinas d ON d.id = a.disciplina_id
-    JOIN turmas t ON t.id = a.turma_id
-    JOIN professores p ON p.id = a.professor_id
-    ORDER BY a.id DESC
-""")
+        SELECT a.id, d.nome, t.nome, p.nome,
+        a.descricao, a.data, a.hora_inicio, a.hora_fim
+        FROM atividades a
+        JOIN disciplinas d ON d.id = a.disciplina_id
+        JOIN turmas t ON t.id = a.turma_id
+        JOIN professores p ON p.id = a.professor_id
+        ORDER BY a.id DESC
+    """)
 
     dados = cursor.fetchall()
     lista = []
@@ -91,7 +88,6 @@ def listar_disciplinas():
 
     cursor.execute("SELECT id, nome FROM disciplinas ORDER BY nome")
     dados = cursor.fetchall()
-
     lista = []
 
     for item in dados:
@@ -102,9 +98,7 @@ def listar_disciplinas():
 
     cursor.close()
     banco.close()
-
     return jsonify(lista)
-
 
 @app.route("/turmas", methods=["GET"])
 def listar_turmas():
@@ -113,7 +107,6 @@ def listar_turmas():
 
     cursor.execute("SELECT id, nome FROM turmas ORDER BY nome")
     dados = cursor.fetchall()
-
     lista = []
 
     for item in dados:
@@ -124,9 +117,7 @@ def listar_turmas():
 
     cursor.close()
     banco.close()
-
     return jsonify(lista)
-
 
 @app.route("/professores", methods=["GET"])
 def listar_professores():
@@ -135,7 +126,6 @@ def listar_professores():
 
     cursor.execute("SELECT id, nome FROM professores ORDER BY nome")
     dados = cursor.fetchall()
-
     lista = []
 
     for item in dados:
@@ -146,7 +136,6 @@ def listar_professores():
 
     cursor.close()
     banco.close()
-
     return jsonify(lista)
 
 if __name__ == "__main__":
