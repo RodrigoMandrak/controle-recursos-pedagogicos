@@ -64,6 +64,10 @@ function Index() {
   const [disciplinas, setDisciplinas] = useState([]);
 const [turmas, setTurmas] = useState([]);
 const [professores, setProfessores] = useState([]);
+const [recursos, setRecursos] = useState([]);
+const [alocacoes, setAlocacoes] = useState([]);
+const [atividadeEscolhida, setAtividadeEscolhida] = useState("");
+const [recursoEscolhido, setRecursoEscolhido] = useState("");
   const [form, setForm] = useState({
     disciplina: "",
     turma: "",
@@ -113,10 +117,33 @@ async function carregarOpcoes() {
     console.log("Erro ao carregar dados", erro);
   }
 }
+async function carregarRecursos() {
+    try {
+        const resposta = await fetch("http://127.0.0.1:5000/recursos");
+        const dados = await resposta.json();
 
+        setRecursos(dados);
+    } catch (erro) {
+        console.log("Erro ao carregar recursos", erro);
+    }
+}
+
+async function carregarAlocacoes() {
+    try {
+        const resposta = await fetch("http://127.0.0.1:5000/alocacoes");
+        const dados = await resposta.json();
+
+        setAlocacoes(dados);
+    } catch (erro) {
+        console.log("Erro ao carregar alocacoes", erro);
+    }
+}
 useEffect(() => {
-  carregarAtividades();
-  carregarOpcoes();
+    carregarAtividades();
+    carregarOpcoes();
+
+    carregarRecursos();
+    carregarAlocacoes();
 }, []);
 
   function handleChange(e) {
@@ -170,7 +197,47 @@ useEffect(() => {
     console.log(erro);
   }
 }
+async function salvarAlocacao(e) {
+ e.preventDefault();
 
+ if (!atividadeEscolhida || !recursoEscolhido) {
+   alert("Escolha uma atividade e um recurso");
+   return;
+ }
+
+ const dados = {
+   atividade_id: Number(atividadeEscolhida),
+   recurso_id: Number(recursoEscolhido)
+ };
+
+ try {
+   const resposta = await fetch("http://127.0.0.1:5000/alocacoes", {
+     method: "POST",
+     headers: {
+       "Content-Type": "application/json"
+     },
+     body: JSON.stringify(dados)
+   });
+
+   const resultado = await resposta.json();
+
+   if (!resposta.ok) {
+     alert(resultado.erro);
+     return;
+   }
+
+   alert("Recurso alocado com sucesso!");
+
+   setAtividadeEscolhida("");
+   setRecursoEscolhido("");
+
+   carregarAlocacoes();
+
+ } catch (erro) {
+   alert("Erro ao fazer a alocacao");
+   console.log(erro);
+ }
+}
   return (
     <main className="min-h-screen bg-paper font-sans text-ink antialiased">
       <div className="mx-auto max-w-2xl px-5 py-12 sm:py-16">
@@ -333,7 +400,103 @@ useEffect(() => {
             </div>
           </form>
         </section>
+<section className="mt-10 rounded-[28px] bg-card p-6 ring-1 ring-line sm:p-8">
 
+  <div className="mb-6">
+    <h2 className="text-lg font-semibold">Alocar recurso</h2>
+    <p className="mt-1 text-sm text-mute">
+      Escolha uma atividade e o recurso que vai ser usado
+    </p>
+  </div>
+
+  <form onSubmit={salvarAlocacao} className="space-y-4">
+
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold uppercase text-mute">
+        Atividade
+      </span>
+
+      <select
+        value={atividadeEscolhida}
+        onChange={(e) => setAtividadeEscolhida(e.target.value)}
+        className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line"
+        required
+      >
+        <option value="">Selecione uma atividade</option>
+
+        {activities.map((atividade) => (
+          <option key={atividade.id} value={atividade.id}>
+            {atividade.disciplina} - {atividade.turma} - {atividade.data}
+          </option>
+        ))}
+
+      </select>
+    </label>
+
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold uppercase text-mute">
+        Recurso
+      </span>
+
+      <select
+        value={recursoEscolhido}
+        onChange={(e) => setRecursoEscolhido(e.target.value)}
+        className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line"
+        required
+      >
+        <option value="">Selecione um recurso</option>
+
+        {recursos.map((recurso) => (
+          <option key={recurso.id} value={recurso.id}>
+            {recurso.nome} - {recurso.tipo}
+          </option>
+        ))}
+
+      </select>
+    </label>
+
+    <button
+      type="submit"
+      className="w-full rounded-xl bg-green px-4 py-3 text-sm font-semibold text-white"
+    >
+      Alocar recurso
+    </button>
+
+  </form>
+
+  <div className="mt-8">
+    <h3 className="mb-3 font-semibold">Recursos alocados</h3>
+
+    {alocacoes.length === 0 && (
+      <p className="text-sm text-mute">
+        Nenhum recurso alocado ainda.
+      </p>
+    )}
+
+    {alocacoes.map((item) => (
+      <div
+        key={item.id}
+        className="mb-3 rounded-xl bg-paper p-4 ring-1 ring-line"
+      >
+        <strong>{item.disciplina} - {item.turma}</strong>
+
+        <p className="text-sm text-mute">
+          {item.professor}
+        </p>
+
+        <p className="mt-1 text-sm">
+          Recurso: {item.recurso} ({item.tipo})
+        </p>
+
+        <p className="text-sm">
+          {item.data} · {item.hora_inicio} até {item.hora_fim}
+        </p>
+      </div>
+    ))}
+
+  </div>
+
+</section>
         <section className="mt-12">
           <div className="mb-5 flex items-baseline justify-between">
             <h2 className="text-lg font-semibold">Atividades cadastradas</h2>
