@@ -165,3 +165,50 @@ def buscar_alocacoes():
     banco.close()
 
     return lista
+def buscar_alocacao(id_alocacao):
+    banco = conectar()
+    cursor = banco.cursor()
+
+    cursor.execute("""
+        SELECT atividade_id, recurso_id
+        FROM alocacoes
+        WHERE id = %s
+    """, (id_alocacao,))
+
+    alocacao = cursor.fetchone()
+
+    cursor.close()
+    banco.close()
+
+    return alocacao
+
+
+def alterar_alocacao(id_alocacao, recurso):
+    banco = conectar()
+    cursor = banco.cursor()
+
+    cursor.execute("""
+        UPDATE alocacoes
+        SET recurso_id = %s
+        WHERE id = %s
+    """, (recurso, id_alocacao))
+
+    banco.commit()
+
+    cursor.close()
+    banco.close()
+
+
+def cancelar_alocacao(id_alocacao):
+    banco = conectar()
+    cursor = banco.cursor()
+
+    cursor.execute("""
+        DELETE FROM alocacoes
+        WHERE id = %s
+    """, (id_alocacao,))
+
+    banco.commit()
+
+    cursor.close()
+    banco.close()
