@@ -6,7 +6,7 @@ from models.alocacao_model import buscar_alocacoes
 from models.alocacao_model import buscar_alocacao
 from models.alocacao_model import alterar_alocacao
 from models.alocacao_model import cancelar_alocacao
-from services.conflito_service import validar_conflitos
+from models.alocacao_model import validar_conflitos
 
 
 alocacao_bp = Blueprint("alocacoes", __name__)
