@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { useState, useEffect } from "react";
 
+const API = "http://localhost:5000";
+
 
 
 export const Route = createFileRoute("/")({
@@ -119,8 +121,174 @@ function formatDate(dateString) {
 }
 
 
+function ModalDocumento({ tipo, fechar }) {
+  if (!tipo) return null;
+
+  const politica = tipo === "privacidade";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+      <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-[28px] bg-card p-6 ring-1 ring-line sm:p-8">
+        <div className="mb-5 flex items-start justify-between gap-4 border-b border-line pb-4">
+          <div>
+            <h2 className="text-xl font-bold">
+              {politica ? "Política de Privacidade" : "Termos de Uso"}
+            </h2>
+            <p className="mt-1 text-sm text-mute">Agenda Pedagógica</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={fechar}
+            className="rounded-xl bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line"
+          >
+            Fechar
+          </button>
+        </div>
+
+        {politica ? (
+          <div className="space-y-5 text-sm leading-relaxed text-ink/85">
+            <div>
+              <h3 className="font-semibold text-ink">1. Dados utilizados</h3>
+              <p className="mt-1">
+                O sistema utiliza nome, e-mail e, quando informado, identificador institucional.
+                Também registra data e hora do aceite dos termos e ações importantes realizadas no sistema.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-ink">2. Para que os dados são usados</h3>
+              <p className="mt-1">
+                O nome identifica o usuário nas atividades e registros. O e-mail é usado para acesso à conta.
+                O identificador institucional, quando preenchido, auxilia na vinculação com o ambiente acadêmico.
+                Os logs são usados para segurança, rastreabilidade e auditoria das ações realizadas.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-ink">3. Proteção das informações</h3>
+              <p className="mt-1">
+                A senha não é armazenada em texto puro: o sistema guarda somente o hash da senha.
+                O acesso às funcionalidades também é controlado por perfil de usuário, diferenciando professor e coordenador.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-ink">4. Compartilhamento e acesso</h3>
+              <p className="mt-1">
+                Os dados são utilizados apenas nas funções do sistema acadêmico. Professores têm acesso limitado
+                às próprias informações operacionais, enquanto o coordenador possui acesso administrativo conforme sua função.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-ink">5. Direitos do usuário</h3>
+              <p className="mt-1">
+                O usuário pode solicitar consulta, correção ou exclusão dos dados da conta. A opção de exclusão
+                será disponibilizada na área da conta e exigirá confirmação antes da remoção. Quando necessário para
+                preservar a integridade de registros de auditoria, informações identificadoras poderão ser desvinculadas ou anonimizadas.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-ink">6. Retenção</h3>
+              <p className="mt-1">
+                Os dados são mantidos enquanto a conta estiver ativa ou enquanto forem necessários para as finalidades
+                acadêmicas e de segurança descritas nesta política.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-5 text-sm leading-relaxed text-ink/85">
+            <div>
+              <h3 className="font-semibold text-ink">1. Uso do sistema</h3>
+              <p className="mt-1">
+                A Agenda Pedagógica é destinada ao controle de atividades e recursos pedagógicos.
+                O usuário deve utilizar sua própria conta e informar dados corretos no cadastro.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-ink">2. Perfis e permissões</h3>
+              <p className="mt-1">
+                Contas comuns são cadastradas como professor. O perfil de coordenador possui permissões administrativas
+                adicionais e não pode ser escolhido livremente durante o cadastro.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-ink">3. Responsabilidade de acesso</h3>
+              <p className="mt-1">
+                O usuário deve manter sua senha em sigilo e encerrar a sessão ao terminar o uso em computadores compartilhados.
+                Ações relevantes podem ser registradas para fins de auditoria e segurança.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-ink">4. Uso adequado</h3>
+              <p className="mt-1">
+                Não é permitido tentar acessar registros de outros usuários sem autorização, manipular informações
+                de forma indevida ou utilizar o sistema fora de sua finalidade acadêmica.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-ink">5. Privacidade</h3>
+              <p className="mt-1">
+                O tratamento dos dados pessoais utilizados pelo sistema é explicado na Política de Privacidade.
+                Ao criar a conta, o usuário confirma que teve acesso a estes termos e à política.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 
 function Index() {
+
+  const [usuario, setUsuario] = useState(null);
+  const [carregandoUsuario, setCarregandoUsuario] = useState(true);
+  const [erroLogin, setErroLogin] = useState("");
+  const [loginForm, setLoginForm] = useState({
+    email: "",
+    senha: "",
+  });
+
+  const tokenInicial = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("redefinir") || ""
+    : "";
+
+  const [modoAcesso, setModoAcesso] = useState(tokenInicial ? "redefinir" : "login");
+  const [documentoAberto, setDocumentoAberto] = useState(null);
+  const [meusDadosAberto, setMeusDadosAberto] = useState(false);
+  const [meusDados, setMeusDados] = useState(null);
+  const [carregandoDados, setCarregandoDados] = useState(false);
+  const [senhaExclusao, setSenhaExclusao] = useState("");
+  const [erroExclusao, setErroExclusao] = useState("");
+  const [erroCadastro, setErroCadastro] = useState("");
+
+  const [recuperacaoEmail, setRecuperacaoEmail] = useState("");
+  const [mensagemRecuperacao, setMensagemRecuperacao] = useState("");
+  const [erroRecuperacao, setErroRecuperacao] = useState("");
+  const [tokenRedefinicao, setTokenRedefinicao] = useState(tokenInicial);
+  const [novaSenhaForm, setNovaSenhaForm] = useState({
+    senha: "",
+    confirmar_senha: "",
+  });
+  const [erroRedefinicao, setErroRedefinicao] = useState("");
+
+  const [cadastroForm, setCadastroForm] = useState({
+    nome: "",
+    email: "",
+    senha: "",
+    confirmar_senha: "",
+    identificador_institucional: "",
+    aceitou_termos: false,
+  });
 
   const [activities, setActivities] = useState([]);
 
@@ -164,11 +332,14 @@ const itensPorPagina = 5;
 
   });
 
+  const [feriado, setFeriado] = useState(null);
+  const [consultandoFeriado, setConsultandoFeriado] = useState(false);
+
 async function carregarAtividades() {
 
   try {
 
-    const resposta = await fetch("http://127.0.0.1:5000/atividades");
+    const resposta = await fetch(`${API}/atividades`, { credentials: "include" });
 
     const dados = await resposta.json();
 
@@ -212,7 +383,7 @@ async function carregarOpcoes() {
 
   try {
 
-    const respostaDisciplinas = await fetch("http://127.0.0.1:5000/disciplinas");
+    const respostaDisciplinas = await fetch(`${API}/disciplinas`, { credentials: "include" });
 
     const dadosDisciplinas = await respostaDisciplinas.json();
 
@@ -220,7 +391,7 @@ async function carregarOpcoes() {
 
 
 
-    const respostaTurmas = await fetch("http://127.0.0.1:5000/turmas");
+    const respostaTurmas = await fetch(`${API}/turmas`, { credentials: "include" });
 
     const dadosTurmas = await respostaTurmas.json();
 
@@ -228,7 +399,7 @@ async function carregarOpcoes() {
 
 
 
-    const respostaProfessores = await fetch("http://127.0.0.1:5000/professores");
+    const respostaProfessores = await fetch(`${API}/professores`, { credentials: "include" });
 
     const dadosProfessores = await respostaProfessores.json();
 
@@ -248,7 +419,7 @@ async function carregarRecursos() {
 
     try {
 
-        const resposta = await fetch("http://127.0.0.1:5000/recursos");
+        const resposta = await fetch(`${API}/recursos`, { credentials: "include" });
 
         const dados = await resposta.json();
 
@@ -270,7 +441,7 @@ async function carregarAlocacoes() {
 
     try {
 
-        const resposta = await fetch("http://127.0.0.1:5000/alocacoes");
+        const resposta = await fetch(`${API}/alocacoes`, { credentials: "include" });
 
         const dados = await resposta.json();
 
@@ -286,27 +457,363 @@ async function carregarAlocacoes() {
 
 }
 
+async function verificarUsuario() {
+  try {
+    const resposta = await fetch(`${API}/usuario-logado`, {
+      credentials: "include",
+    });
+
+    if (!resposta.ok) {
+      setUsuario(null);
+      return;
+    }
+
+    const dados = await resposta.json();
+    setUsuario(dados);
+  } catch (erro) {
+    console.log("Erro ao verificar usuario", erro);
+    setUsuario(null);
+  } finally {
+    setCarregandoUsuario(false);
+  }
+}
+
+async function fazerLogin(e) {
+  e.preventDefault();
+  setErroLogin("");
+
+  try {
+    const resposta = await fetch(`${API}/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(loginForm),
+    });
+
+    const resultado = await resposta.json();
+
+    if (!resposta.ok) {
+      setErroLogin(resultado.erro || "Nao foi possivel entrar");
+      return;
+    }
+
+    setUsuario(resultado.usuario);
+    setLoginForm({ email: "", senha: "" });
+  } catch (erro) {
+    console.log("Erro no login", erro);
+    setErroLogin("Erro ao conectar com o servidor");
+  }
+}
+
+async function solicitarRecuperacao(e) {
+  e.preventDefault();
+  setErroRecuperacao("");
+  setMensagemRecuperacao("");
+
+  if (!recuperacaoEmail.trim()) {
+    setErroRecuperacao("Informe seu e-mail");
+    return;
+  }
+
+  try {
+    const resposta = await fetch(`${API}/esqueci-senha`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: recuperacaoEmail.trim() }),
+    });
+
+    const resultado = await resposta.json();
+
+    if (!resposta.ok) {
+      setErroRecuperacao(resultado.erro || "Nao foi possivel solicitar a recuperacao");
+      return;
+    }
+
+    setMensagemRecuperacao(resultado.mensagem);
+  } catch (erro) {
+    console.log("Erro na recuperacao de senha", erro);
+    setErroRecuperacao("Erro ao conectar com o servidor");
+  }
+}
+
+async function redefinirSenha(e) {
+  e.preventDefault();
+  setErroRedefinicao("");
+
+  if (novaSenhaForm.senha !== novaSenhaForm.confirmar_senha) {
+    setErroRedefinicao("As senhas nao conferem");
+    return;
+  }
+
+  if (novaSenhaForm.senha.length < 8) {
+    setErroRedefinicao("A senha deve ter pelo menos 8 caracteres");
+    return;
+  }
+
+  try {
+    const resposta = await fetch(`${API}/redefinir-senha`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        token: tokenRedefinicao,
+        senha: novaSenhaForm.senha,
+        confirmar_senha: novaSenhaForm.confirmar_senha,
+      }),
+    });
+
+    const resultado = await resposta.json();
+
+    if (!resposta.ok) {
+      setErroRedefinicao(resultado.erro || "Nao foi possivel redefinir a senha");
+      return;
+    }
+
+    try {
+      await fetch(`${API}/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (erro) {
+      console.log("Erro ao encerrar sessao depois da redefinicao", erro);
+    }
+
+    alert("Senha redefinida com sucesso! Entre com a nova senha.");
+
+    setUsuario(null);
+    setNovaSenhaForm({ senha: "", confirmar_senha: "" });
+    setTokenRedefinicao("");
+    setModoAcesso("login");
+
+    if (typeof window !== "undefined") {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  } catch (erro) {
+    console.log("Erro ao redefinir senha", erro);
+    setErroRedefinicao("Erro ao conectar com o servidor");
+  }
+}
+
+function voltarParaLogin() {
+  setModoAcesso("login");
+  setErroRecuperacao("");
+  setMensagemRecuperacao("");
+  setErroRedefinicao("");
+  setTokenRedefinicao("");
+
+  if (typeof window !== "undefined") {
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+}
+
+async function fazerCadastro(e) {
+  e.preventDefault();
+  setErroCadastro("");
+
+  if (cadastroForm.senha !== cadastroForm.confirmar_senha) {
+    setErroCadastro("As senhas nao conferem");
+    return;
+  }
+
+  if (!cadastroForm.aceitou_termos) {
+    setErroCadastro("Voce precisa aceitar os Termos de Uso e a Politica de Privacidade");
+    return;
+  }
+
+  try {
+    const resposta = await fetch(`${API}/usuarios/cadastro`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(cadastroForm),
+    });
+
+    const resultado = await resposta.json();
+
+    if (!resposta.ok) {
+      setErroCadastro(resultado.erro || "Nao foi possivel criar a conta");
+      return;
+    }
+
+    alert("Conta criada com sucesso! Agora faca seu login.");
+
+    setLoginForm({
+      email: cadastroForm.email,
+      senha: "",
+    });
+
+    setCadastroForm({
+      nome: "",
+      email: "",
+      senha: "",
+      confirmar_senha: "",
+      identificador_institucional: "",
+      aceitou_termos: false,
+    });
+
+    setModoAcesso("login");
+  } catch (erro) {
+    console.log("Erro no cadastro", erro);
+    setErroCadastro("Erro ao conectar com o servidor");
+  }
+}
+
+async function fazerLogout() {
+  try {
+    await fetch(`${API}/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch (erro) {
+    console.log("Erro ao sair", erro);
+  }
+
+  setUsuario(null);
+  setActivities([]);
+  setAlocacoes([]);
+  setRecursos([]);
+}
+
+async function abrirMeusDados() {
+  setMeusDadosAberto(true);
+  setCarregandoDados(true);
+  setErroExclusao("");
+  setSenhaExclusao("");
+
+  try {
+    const resposta = await fetch(`${API}/meus-dados`, {
+      credentials: "include",
+    });
+
+    const resultado = await resposta.json();
+
+    if (!resposta.ok) {
+      alert(resultado.erro || "Nao foi possivel carregar seus dados");
+      setMeusDadosAberto(false);
+      return;
+    }
+
+    setMeusDados(resultado);
+  } catch (erro) {
+    console.log("Erro ao carregar meus dados", erro);
+    alert("Erro ao conectar com o servidor");
+    setMeusDadosAberto(false);
+  } finally {
+    setCarregandoDados(false);
+  }
+}
+
+async function excluirMinhaConta() {
+  setErroExclusao("");
+
+  if (!senhaExclusao) {
+    setErroExclusao("Digite sua senha para confirmar a exclusao");
+    return;
+  }
+
+  const confirmou = window.confirm(
+    "Tem certeza que deseja excluir sua conta? Essa acao nao pode ser desfeita."
+  );
+
+  if (!confirmou) {
+    return;
+  }
+
+  try {
+    const resposta = await fetch(`${API}/minha-conta`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ senha: senhaExclusao }),
+    });
+
+    const resultado = await resposta.json();
+
+    if (!resposta.ok) {
+      setErroExclusao(resultado.erro || "Nao foi possivel excluir a conta");
+      return;
+    }
+
+    alert("Conta excluida com sucesso");
+    setMeusDadosAberto(false);
+    setMeusDados(null);
+    setSenhaExclusao("");
+    setUsuario(null);
+    setActivities([]);
+    setAlocacoes([]);
+    setRecursos([]);
+  } catch (erro) {
+    console.log("Erro ao excluir conta", erro);
+    setErroExclusao("Erro ao conectar com o servidor");
+  }
+}
+
 useEffect(() => {
-
-    carregarAtividades();
-
-    carregarOpcoes();
-
-
-
-    carregarRecursos();
-
-    carregarAlocacoes();
-
+  verificarUsuario();
 }, []);
 
+useEffect(() => {
+  if (!usuario) {
+    return;
+  }
 
+  carregarAtividades();
+  carregarOpcoes();
+  carregarRecursos();
+  carregarAlocacoes();
+}, [usuario]);
+
+
+
+  async function verificarDataFeriado(data) {
+    if (!data) {
+      setFeriado(null);
+      return;
+    }
+
+    setConsultandoFeriado(true);
+
+    try {
+      const resposta = await fetch(
+        `${API}/verificar-feriado?data=${encodeURIComponent(data)}`,
+        { credentials: "include" }
+      );
+
+      const resultado = await resposta.json();
+
+      if (!resposta.ok) {
+        console.log("Nao foi possivel consultar o feriado", resultado.erro);
+        setFeriado(null);
+        return;
+      }
+
+      setFeriado(resultado);
+    } catch (erro) {
+      console.log("Erro ao consultar feriado", erro);
+      setFeriado(null);
+    } finally {
+      setConsultandoFeriado(false);
+    }
+  }
 
   function handleChange(e) {
 
     const { name, value } = e.target;
 
     setForm((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "data") {
+      verificarDataFeriado(value);
+    }
 
   }
 
@@ -340,9 +847,11 @@ useEffect(() => {
 
   try {
 
-    const resposta = await fetch("http://127.0.0.1:5000/atividades", {
+    const resposta = await fetch(`${API}/atividades`, {
 
       method: "POST",
+
+      credentials: "include",
 
       headers: {
 
@@ -393,6 +902,8 @@ useEffect(() => {
 
     });
 
+    setFeriado(null);
+
 
 
   } catch (erro) {
@@ -433,9 +944,11 @@ async function salvarAlocacao(e) {
 
  try {
 
-   const resposta = await fetch("http://127.0.0.1:5000/alocacoes", {
+   const resposta = await fetch(`${API}/alocacoes`, {
 
      method: "POST",
+
+     credentials: "include",
 
      headers: {
 
@@ -500,9 +1013,10 @@ async function cancelarAlocacao(id) {
   try {
 
     const resposta = await fetch(
-      `http://127.0.0.1:5000/alocacoes/${id}`,
+      `${API}/alocacoes/${id}`,
       {
-        method: "DELETE"
+        method: "DELETE",
+        credentials: "include"
       }
     );
 
@@ -541,9 +1055,10 @@ async function alterarAlocacao(id) {
   try {
 
     const resposta = await fetch(
-      `http://127.0.0.1:5000/alocacoes/${id}`,
+      `${API}/alocacoes/${id}`,
       {
         method: "PUT",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json"
         },
@@ -599,6 +1114,446 @@ const totalPaginasAtividades = Math.ceil(
   activities.length / itensPorPagina
 );
 
+  if (carregandoUsuario) {
+    return (
+      <main className="min-h-screen bg-paper font-sans text-ink antialiased">
+        <div className="mx-auto flex min-h-screen max-w-md items-center px-5">
+          <p className="w-full text-center text-sm text-mute">Carregando...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (modoAcesso === "redefinir" && tokenRedefinicao) {
+    return (
+      <main className="min-h-screen bg-paper font-sans text-ink antialiased">
+        <div className="mx-auto flex min-h-screen max-w-md items-center px-5 py-12">
+          <div className="w-full">
+            <header className="mb-8 text-center">
+              <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-card ring-1 ring-line">
+                <span className="font-hand text-3xl leading-none text-green">Ag</span>
+              </span>
+              <h1 className="mt-4 text-2xl font-bold">Criar nova senha</h1>
+              <p className="mt-2 text-sm text-mute">
+                Digite a nova senha para sua conta.
+              </p>
+            </header>
+
+            <section className="rounded-[28px] bg-card p-6 ring-1 ring-line [box-shadow:0_24px_50px_-30px_rgba(69,61,46,.45)] sm:p-8">
+              <form onSubmit={redefinirSenha} className="space-y-4">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mute">
+                    Nova senha
+                  </span>
+                  <input
+                    type="password"
+                    value={novaSenhaForm.senha}
+                    onChange={(e) =>
+                      setNovaSenhaForm({ ...novaSenhaForm, senha: e.target.value })
+                    }
+                    placeholder="Minimo de 8 caracteres"
+                    required
+                    className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mute">
+                    Confirmar nova senha
+                  </span>
+                  <input
+                    type="password"
+                    value={novaSenhaForm.confirmar_senha}
+                    onChange={(e) =>
+                      setNovaSenhaForm({
+                        ...novaSenhaForm,
+                        confirmar_senha: e.target.value,
+                      })
+                    }
+                    placeholder="Repita a nova senha"
+                    required
+                    className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+                  />
+                </label>
+
+                {erroRedefinicao && (
+                  <p className="rounded-xl bg-paper px-3.5 py-2.5 text-sm text-ink ring-1 ring-line">
+                    {erroRedefinicao}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full rounded-xl bg-green px-4 py-3 text-sm font-semibold text-white"
+                >
+                  Salvar nova senha
+                </button>
+
+                <button
+                  type="button"
+                  onClick={voltarParaLogin}
+                  className="w-full text-sm font-semibold text-green underline underline-offset-2"
+                >
+                  Voltar para o login
+                </button>
+              </form>
+            </section>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!usuario && modoAcesso === "recuperacao") {
+    return (
+      <main className="min-h-screen bg-paper font-sans text-ink antialiased">
+        <div className="mx-auto flex min-h-screen max-w-md items-center px-5 py-12">
+          <div className="w-full">
+            <header className="mb-8 text-center">
+              <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-card ring-1 ring-line">
+                <span className="font-hand text-3xl leading-none text-green">Ag</span>
+              </span>
+              <h1 className="mt-4 text-2xl font-bold">Recuperar senha</h1>
+              <p className="mt-2 text-sm text-mute">
+                Informe o e-mail da sua conta para receber um link temporario.
+              </p>
+            </header>
+
+            <section className="rounded-[28px] bg-card p-6 ring-1 ring-line [box-shadow:0_24px_50px_-30px_rgba(69,61,46,.45)] sm:p-8">
+              <form onSubmit={solicitarRecuperacao} className="space-y-4">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mute">
+                    E-mail
+                  </span>
+                  <input
+                    type="email"
+                    value={recuperacaoEmail}
+                    onChange={(e) => setRecuperacaoEmail(e.target.value)}
+                    placeholder="seuemail@exemplo.com"
+                    required
+                    className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+                  />
+                </label>
+
+                {erroRecuperacao && (
+                  <p className="rounded-xl bg-paper px-3.5 py-2.5 text-sm text-ink ring-1 ring-line">
+                    {erroRecuperacao}
+                  </p>
+                )}
+
+                {mensagemRecuperacao && (
+                  <p className="rounded-xl bg-green/10 px-3.5 py-2.5 text-sm text-ink ring-1 ring-green/30">
+                    {mensagemRecuperacao}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full rounded-xl bg-green px-4 py-3 text-sm font-semibold text-white"
+                >
+                  Enviar link de recuperacao
+                </button>
+
+                <button
+                  type="button"
+                  onClick={voltarParaLogin}
+                  className="w-full text-sm font-semibold text-green underline underline-offset-2"
+                >
+                  Voltar para o login
+                </button>
+              </form>
+            </section>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!usuario) {
+    return (
+      <main className="min-h-screen bg-paper font-sans text-ink antialiased">
+        <div className="mx-auto flex min-h-screen max-w-md items-center px-5 py-12">
+          <div className="w-full">
+            <header className="mb-8 text-center">
+              <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-card ring-1 ring-line">
+                <span className="font-hand text-3xl leading-none text-green">Ag</span>
+              </span>
+
+              <h1 className="mt-4 text-2xl font-bold">Agenda Pedagógica</h1>
+              <p className="mt-2 text-sm text-mute">
+                Entre com sua conta para acessar o sistema
+              </p>
+            </header>
+
+            <section className="rounded-[28px] bg-card p-6 ring-1 ring-line [box-shadow:0_24px_50px_-30px_rgba(69,61,46,.45)] sm:p-8">
+              <div className="mb-6 border-b border-line pb-4">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModoAcesso("login");
+                      setErroLogin("");
+                    }}
+                    className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                      modoAcesso === "login"
+                        ? "bg-green text-white"
+                        : "bg-paper text-ink ring-1 ring-line"
+                    }`}
+                  >
+                    Entrar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModoAcesso("cadastro");
+                      setErroCadastro("");
+                    }}
+                    className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                      modoAcesso === "cadastro"
+                        ? "bg-green text-white"
+                        : "bg-paper text-ink ring-1 ring-line"
+                    }`}
+                  >
+                    Criar conta
+                  </button>
+                </div>
+
+                <p className="mt-4 text-sm text-mute">
+                  {modoAcesso === "login"
+                    ? "Use seu e-mail e sua senha cadastrados."
+                    : "Preencha os dados abaixo para criar sua conta de professor."}
+                </p>
+              </div>
+
+              {modoAcesso === "login" ? (
+                <form onSubmit={fazerLogin} className="space-y-4">
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mute">
+                      E-mail
+                    </span>
+                    <input
+                      type="email"
+                      value={loginForm.email}
+                      onChange={(e) =>
+                        setLoginForm({ ...loginForm, email: e.target.value })
+                      }
+                      placeholder="seuemail@exemplo.com"
+                      required
+                      className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line placeholder:text-mute/60 focus:outline-none focus:ring-2 focus:ring-green"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mute">
+                      Senha
+                    </span>
+                    <input
+                      type="password"
+                      value={loginForm.senha}
+                      onChange={(e) =>
+                        setLoginForm({ ...loginForm, senha: e.target.value })
+                      }
+                      placeholder="Digite sua senha"
+                      required
+                      className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line placeholder:text-mute/60 focus:outline-none focus:ring-2 focus:ring-green"
+                    />
+                  </label>
+
+                  {erroLogin && (
+                    <p className="rounded-xl bg-paper px-3.5 py-2.5 text-sm text-ink ring-1 ring-line">
+                      {erroLogin}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl bg-green px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#5f8871]"
+                  >
+                    Entrar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModoAcesso("recuperacao");
+                      setRecuperacaoEmail(loginForm.email);
+                      setErroRecuperacao("");
+                      setMensagemRecuperacao("");
+                    }}
+                    className="w-full text-center text-sm font-semibold text-green underline underline-offset-2"
+                  >
+                    Esqueci minha senha
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={fazerCadastro} className="space-y-4">
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mute">
+                      Nome
+                    </span>
+                    <input
+                      type="text"
+                      value={cadastroForm.nome}
+                      onChange={(e) =>
+                        setCadastroForm({ ...cadastroForm, nome: e.target.value })
+                      }
+                      placeholder="Seu nome completo"
+                      required
+                      className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mute">
+                      E-mail
+                    </span>
+                    <input
+                      type="email"
+                      value={cadastroForm.email}
+                      onChange={(e) =>
+                        setCadastroForm({ ...cadastroForm, email: e.target.value })
+                      }
+                      placeholder="seuemail@exemplo.com"
+                      required
+                      className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mute">
+                      Identificador institucional (opcional)
+                    </span>
+                    <input
+                      type="text"
+                      value={cadastroForm.identificador_institucional}
+                      onChange={(e) =>
+                        setCadastroForm({
+                          ...cadastroForm,
+                          identificador_institucional: e.target.value,
+                        })
+                      }
+                      placeholder="Matricula ou codigo institucional"
+                      className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+                    />
+                  </label>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mute">
+                        Senha
+                      </span>
+                      <input
+                        type="password"
+                        value={cadastroForm.senha}
+                        onChange={(e) =>
+                          setCadastroForm({ ...cadastroForm, senha: e.target.value })
+                        }
+                        placeholder="Digite sua senha"
+                        required
+                        className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-mute">
+                        Confirmar senha
+                      </span>
+                      <input
+                        type="password"
+                        value={cadastroForm.confirmar_senha}
+                        onChange={(e) =>
+                          setCadastroForm({
+                            ...cadastroForm,
+                            confirmar_senha: e.target.value,
+                          })
+                        }
+                        placeholder="Repita sua senha"
+                        required
+                        className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+                      />
+                    </label>
+                  </div>
+
+                  <label className="flex items-start gap-3 rounded-xl bg-paper p-3.5 ring-1 ring-line">
+                    <input
+                      type="checkbox"
+                      checked={cadastroForm.aceitou_termos}
+                      onChange={(e) =>
+                        setCadastroForm({
+                          ...cadastroForm,
+                          aceitou_termos: e.target.checked,
+                        })
+                      }
+                      className="mt-1"
+                    />
+                    <span className="text-sm leading-relaxed text-mute">
+                      Li e aceito os {" "}
+                      <button
+                        type="button"
+                        onClick={() => setDocumentoAberto("termos")}
+                        className="font-semibold text-green underline underline-offset-2"
+                      >
+                        Termos de Uso
+                      </button>{" "}
+                      e a {" "}
+                      <button
+                        type="button"
+                        onClick={() => setDocumentoAberto("privacidade")}
+                        className="font-semibold text-green underline underline-offset-2"
+                      >
+                        Política de Privacidade
+                      </button>.
+                    </span>
+                  </label>
+
+                  {erroCadastro && (
+                    <p className="rounded-xl bg-paper px-3.5 py-2.5 text-sm text-ink ring-1 ring-line">
+                      {erroCadastro}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl bg-green px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#5f8871]"
+                  >
+                    Criar conta
+                  </button>
+                </form>
+              )}
+            </section>
+
+            <div className="mt-6 flex items-center justify-center gap-4 text-xs text-mute">
+              <button
+                type="button"
+                onClick={() => setDocumentoAberto("termos")}
+                className="underline underline-offset-2 hover:text-green"
+              >
+                Termos de Uso
+              </button>
+              <button
+                type="button"
+                onClick={() => setDocumentoAberto("privacidade")}
+                className="underline underline-offset-2 hover:text-green"
+              >
+                Política de Privacidade
+              </button>
+            </div>
+
+            <p className="mt-4 text-center font-hand text-2xl text-mute">
+              o caderno da sala de aula
+            </p>
+          </div>
+        </div>
+
+        <ModalDocumento
+          tipo={documentoAberto}
+          fechar={() => setDocumentoAberto(null)}
+        />
+      </main>
+    );
+  }
+
   return (
 
     <main className="min-h-screen bg-paper font-sans text-ink antialiased">
@@ -638,6 +1593,31 @@ const totalPaginasAtividades = Math.ceil(
             o caderno da sala de aula
 
           </p>
+
+          <div className="mt-5 flex items-center justify-between rounded-2xl bg-card px-4 py-3 ring-1 ring-line">
+            <div>
+              <p className="text-sm font-semibold">{usuario.nome}</p>
+              <p className="text-xs capitalize text-mute">{usuario.perfil}</p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={abrirMeusDados}
+                className="rounded-lg bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line transition-colors hover:bg-card"
+              >
+                Meus dados
+              </button>
+
+              <button
+                type="button"
+                onClick={fazerLogout}
+                className="rounded-lg bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line transition-colors hover:bg-card"
+              >
+                Sair
+              </button>
+            </div>
+          </div>
 
         </header>
 
@@ -810,6 +1790,19 @@ const totalPaginasAtividades = Math.ceil(
                 className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
 
               />
+
+              {consultandoFeriado && (
+                <p className="mt-2 text-xs text-mute">
+                  Consultando calendario de feriados...
+                </p>
+              )}
+
+              {!consultandoFeriado && feriado?.feriado && (
+                <div className="mt-2 rounded-xl bg-cream/30 px-3 py-2 text-sm ring-1 ring-line">
+                  <span className="font-semibold">Atencao:</span>{" "}
+                  esta data corresponde ao feriado {feriado.nome}.
+                </div>
+              )}
 
             </label>
 
@@ -1288,11 +2281,141 @@ const totalPaginasAtividades = Math.ceil(
 
         <footer className="mt-14 text-center">
 
+          <div className="mb-3 flex items-center justify-center gap-4 text-xs text-mute">
+            <button
+              type="button"
+              onClick={() => setDocumentoAberto("termos")}
+              className="underline underline-offset-2 hover:text-green"
+            >
+              Termos de Uso
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDocumentoAberto("privacidade")}
+              className="underline underline-offset-2 hover:text-green"
+            >
+              Política de Privacidade
+            </button>
+          </div>
+
           <p className="font-hand text-2xl text-mute">até a próxima aula</p>
 
         </footer>
 
       </div>
+
+      <ModalDocumento
+        tipo={documentoAberto}
+        fechar={() => setDocumentoAberto(null)}
+      />
+
+      {meusDadosAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+          <div className="max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-[28px] bg-card p-6 ring-1 ring-line sm:p-8">
+            <div className="mb-5 flex items-start justify-between gap-4 border-b border-line pb-4">
+              <div>
+                <h2 className="text-xl font-bold">Meus dados</h2>
+                <p className="mt-1 text-sm text-mute">Informacoes da sua conta</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMeusDadosAberto(false);
+                  setSenhaExclusao("");
+                  setErroExclusao("");
+                }}
+                className="rounded-xl bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line"
+              >
+                Fechar
+              </button>
+            </div>
+
+            {carregandoDados ? (
+              <p className="text-sm text-mute">Carregando...</p>
+            ) : meusDados ? (
+              <div className="space-y-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl bg-paper p-4 ring-1 ring-line">
+                    <p className="text-xs font-semibold uppercase text-mute">Nome</p>
+                    <p className="mt-1 text-sm font-semibold">{meusDados.nome}</p>
+                  </div>
+
+                  <div className="rounded-xl bg-paper p-4 ring-1 ring-line">
+                    <p className="text-xs font-semibold uppercase text-mute">Perfil</p>
+                    <p className="mt-1 text-sm font-semibold capitalize">{meusDados.perfil}</p>
+                  </div>
+
+                  <div className="rounded-xl bg-paper p-4 ring-1 ring-line sm:col-span-2">
+                    <p className="text-xs font-semibold uppercase text-mute">E-mail</p>
+                    <p className="mt-1 break-all text-sm font-semibold">{meusDados.email}</p>
+                  </div>
+
+                  <div className="rounded-xl bg-paper p-4 ring-1 ring-line">
+                    <p className="text-xs font-semibold uppercase text-mute">Identificador institucional</p>
+                    <p className="mt-1 text-sm font-semibold">
+                      {meusDados.identificador_institucional || "Nao informado"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-paper p-4 ring-1 ring-line">
+                    <p className="text-xs font-semibold uppercase text-mute">Aceite dos termos</p>
+                    <p className="mt-1 text-sm font-semibold">
+                      {meusDados.aceitou_termos ? "Aceito" : "Nao registrado"}
+                    </p>
+                    {meusDados.data_aceite && (
+                      <p className="mt-1 text-xs text-mute">{meusDados.data_aceite}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-paper p-4 text-sm leading-relaxed ring-1 ring-line">
+                  <p className="font-semibold">Privacidade</p>
+                  <p className="mt-1 text-mute">
+                    Voce pode consultar estes dados sempre que precisar. Ao excluir a conta,
+                    o vinculo da conta com atividades anteriores e removido. Registros de auditoria
+                    podem ser preservados sem o vinculo direto com a conta.
+                  </p>
+                </div>
+
+                {meusDados.perfil === "coordenador" ? (
+                  <div className="rounded-xl bg-paper p-4 text-sm ring-1 ring-line">
+                    A conta de coordenador nao pode ser excluida por esta opcao administrativa.
+                  </div>
+                ) : (
+                  <div className="rounded-xl p-4 ring-1 ring-line">
+                    <h3 className="font-semibold">Excluir minha conta</h3>
+                    <p className="mt-1 text-sm text-mute">
+                      Para confirmar a exclusao, digite sua senha. Essa acao nao pode ser desfeita.
+                    </p>
+
+                    <input
+                      type="password"
+                      value={senhaExclusao}
+                      onChange={(e) => setSenhaExclusao(e.target.value)}
+                      placeholder="Digite sua senha"
+                      className="mt-4 w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+                    />
+
+                    {erroExclusao && (
+                      <p className="mt-3 text-sm font-semibold text-ink">{erroExclusao}</p>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={excluirMinhaConta}
+                      className="mt-4 w-full rounded-xl bg-paper px-4 py-3 text-sm font-semibold ring-1 ring-line transition-colors hover:bg-card"
+                    >
+                      Excluir minha conta
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
 
     </main>
 
