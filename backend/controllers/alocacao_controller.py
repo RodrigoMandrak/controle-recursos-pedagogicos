@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 
 from models.alocacao_model import buscar_recursos
 from models.alocacao_model import salvar_alocacao
@@ -7,6 +7,8 @@ from models.alocacao_model import buscar_alocacao
 from models.alocacao_model import alterar_alocacao
 from models.alocacao_model import cancelar_alocacao
 from models.alocacao_model import validar_conflitos
+from models.alocacao_model import buscar_usuario_atividade
+from models.log_model import registrar_log
 
 
 alocacao_bp = Blueprint("alocacoes", __name__)
@@ -14,6 +16,12 @@ alocacao_bp = Blueprint("alocacoes", __name__)
 
 @alocacao_bp.route("/recursos", methods=["GET"])
 def listar_recursos():
+
+    if "usuario_id" not in session:
+        return jsonify({
+            "erro": "Voce precisa estar logado"
+        }), 401
+
     recursos = buscar_recursos()
 
     return jsonify(recursos)
@@ -21,20 +29,39 @@ def listar_recursos():
 
 @alocacao_bp.route("/alocacoes", methods=["POST"])
 def alocar_recurso():
+
+    if "usuario_id" not in session:
+        return jsonify({
+            "erro": "Voce precisa estar logado"
+        }), 401
+
     dados = request.json
 
     atividade = dados.get("atividade_id")
     recurso = dados.get("recurso_id")
 
-    # conferindo se veio os dois campos
     if not atividade or not recurso:
         return jsonify({
             "erro": "Escolha uma atividade e um recurso"
         }), 400
 
+    atividade_usuario = buscar_usuario_atividade(atividade)
+
+    if not atividade_usuario:
+        return jsonify({
+            "erro": "Atividade nao encontrada"
+        }), 404
+
+    dono_atividade = atividade_usuario[0]
+
+    if session["perfil"] != "coordenador":
+        if dono_atividade != session["usuario_id"]:
+            return jsonify({
+                "erro": "Voce nao tem permissao para essa atividade"
+            }), 403
+
     print("tentando alocar:", atividade, recurso)
 
-    # antes de salvar passa pela parte de conflito do rapha
     erro = validar_conflitos(atividade, recurso)
 
     if erro:
@@ -42,8 +69,13 @@ def alocar_recurso():
             "erro": erro
         }), 400
 
-    # se nao deu conflito salva normalmente
     salvar_alocacao(atividade, recurso)
+
+    registrar_log(
+        session["usuario_id"],
+        "ALOCACAO_RECURSO",
+        f"Recurso {recurso} alocado na atividade {atividade}"
+    )
 
     print("alocacao salva")
 
@@ -54,12 +86,28 @@ def alocar_recurso():
 
 @alocacao_bp.route("/alocacoes", methods=["GET"])
 def listar_alocacoes():
-    dados = buscar_alocacoes()
+
+    if "usuario_id" not in session:
+        return jsonify({
+            "erro": "Voce precisa estar logado"
+        }), 401
+
+    dados = buscar_alocacoes(
+        session["usuario_id"],
+        session["perfil"]
+    )
 
     return jsonify(dados)
 
+
 @alocacao_bp.route("/alocacoes/<int:id_alocacao>", methods=["PUT"])
 def editar_alocacao(id_alocacao):
+
+    if "usuario_id" not in session:
+        return jsonify({
+            "erro": "Voce precisa estar logado"
+        }), 401
+
     dados = request.json
 
     recurso = dados.get("recurso_id")
@@ -78,14 +126,19 @@ def editar_alocacao(id_alocacao):
 
     atividade = alocacao[0]
     recurso_atual = alocacao[1]
+    dono_atividade = alocacao[2]
 
-    # nao precisa alterar se escolheu o mesmo recurso
+    if session["perfil"] != "coordenador":
+        if dono_atividade != session["usuario_id"]:
+            return jsonify({
+                "erro": "Voce nao tem permissao para alterar essa alocacao"
+            }), 403
+
     if int(recurso) == recurso_atual:
         return jsonify({
             "erro": "Escolha um recurso diferente"
         }), 400
 
-    # antes de trocar o recurso confere os conflitos
     erro = validar_conflitos(atividade, recurso)
 
     if erro:
@@ -95,6 +148,12 @@ def editar_alocacao(id_alocacao):
 
     alterar_alocacao(id_alocacao, recurso)
 
+    registrar_log(
+        session["usuario_id"],
+        "ALTERACAO_ALOCACAO",
+        f"Alocacao {id_alocacao} alterada do recurso {recurso_atual} para {recurso}"
+    )
+
     return jsonify({
         "mensagem": "Alocacao alterada"
     })
@@ -103,6 +162,11 @@ def editar_alocacao(id_alocacao):
 @alocacao_bp.route("/alocacoes/<int:id_alocacao>", methods=["DELETE"])
 def excluir_alocacao(id_alocacao):
 
+    if "usuario_id" not in session:
+        return jsonify({
+            "erro": "Voce precisa estar logado"
+        }), 401
+
     alocacao = buscar_alocacao(id_alocacao)
 
     if not alocacao:
@@ -110,7 +174,23 @@ def excluir_alocacao(id_alocacao):
             "erro": "Alocacao nao encontrada"
         }), 404
 
+    atividade = alocacao[0]
+    recurso = alocacao[1]
+    dono_atividade = alocacao[2]
+
+    if session["perfil"] != "coordenador":
+        if dono_atividade != session["usuario_id"]:
+            return jsonify({
+                "erro": "Voce nao tem permissao para cancelar essa alocacao"
+            }), 403
+
     cancelar_alocacao(id_alocacao)
+
+    registrar_log(
+        session["usuario_id"],
+        "CANCELAMENTO_ALOCACAO",
+        f"Alocacao {id_alocacao} da atividade {atividade} e recurso {recurso} foi cancelada"
+    )
 
     return jsonify({
         "mensagem": "Alocacao cancelada"
