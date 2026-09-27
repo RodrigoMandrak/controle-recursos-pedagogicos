@@ -46,6 +46,24 @@ def pegar_atividade(id_atividade):
     return atividade
 
 
+def buscar_usuario_atividade(id_atividade):
+    banco = conectar()
+    cursor = banco.cursor()
+
+    cursor.execute("""
+        SELECT usuario_id
+        FROM atividades
+        WHERE id = %s
+    """, (id_atividade,))
+
+    usuario = cursor.fetchone()
+
+    cursor.close()
+    banco.close()
+
+    return usuario
+
+
 def procurar_conflito_recurso(recurso, data, inicio, fim):
     banco = conectar()
     cursor = banco.cursor()
@@ -129,22 +147,40 @@ def salvar_alocacao(atividade, recurso):
     banco.close()
 
 
-def buscar_alocacoes():
+def buscar_alocacoes(usuario_id, perfil):
     banco = conectar()
     cursor = banco.cursor()
 
-    cursor.execute("""
-        SELECT al.id, d.nome, t.nome, p.nome,
-        a.data, a.hora_inicio, a.hora_fim,
-        r.nome, r.tipo
-        FROM alocacoes al
-        JOIN atividades a ON a.id = al.atividade_id
-        JOIN disciplinas d ON d.id = a.disciplina_id
-        JOIN turmas t ON t.id = a.turma_id
-        JOIN professores p ON p.id = a.professor_id
-        JOIN recursos r ON r.id = al.recurso_id
-        ORDER BY al.id DESC
-    """)
+    # coordenador consegue visualizar todas
+    if perfil == "coordenador":
+        cursor.execute("""
+            SELECT al.id, d.nome, t.nome, p.nome,
+            a.data, a.hora_inicio, a.hora_fim,
+            r.nome, r.tipo
+            FROM alocacoes al
+            JOIN atividades a ON a.id = al.atividade_id
+            JOIN disciplinas d ON d.id = a.disciplina_id
+            JOIN turmas t ON t.id = a.turma_id
+            JOIN professores p ON p.id = a.professor_id
+            JOIN recursos r ON r.id = al.recurso_id
+            ORDER BY al.id DESC
+        """)
+
+    # professor visualiza somente alocacoes das atividades dele
+    else:
+        cursor.execute("""
+            SELECT al.id, d.nome, t.nome, p.nome,
+            a.data, a.hora_inicio, a.hora_fim,
+            r.nome, r.tipo
+            FROM alocacoes al
+            JOIN atividades a ON a.id = al.atividade_id
+            JOIN disciplinas d ON d.id = a.disciplina_id
+            JOIN turmas t ON t.id = a.turma_id
+            JOIN professores p ON p.id = a.professor_id
+            JOIN recursos r ON r.id = al.recurso_id
+            WHERE a.usuario_id = %s
+            ORDER BY al.id DESC
+        """, (usuario_id,))
 
     dados = cursor.fetchall()
     lista = []
@@ -173,9 +209,10 @@ def buscar_alocacao(id_alocacao):
     cursor = banco.cursor()
 
     cursor.execute("""
-        SELECT atividade_id, recurso_id
-        FROM alocacoes
-        WHERE id = %s
+        SELECT al.atividade_id, al.recurso_id, a.usuario_id
+        FROM alocacoes al
+        JOIN atividades a ON a.id = al.atividade_id
+        WHERE al.id = %s
     """, (id_alocacao,))
 
     alocacao = cursor.fetchone()

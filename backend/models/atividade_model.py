@@ -1,35 +1,70 @@
 from banco import conectar
 
 
-def salvar_atividade(disciplina, turma, professor, descricao, data, inicio, fim):
+def salvar_atividade(
+    disciplina,
+    turma,
+    professor,
+    descricao,
+    data,
+    inicio,
+    fim,
+    usuario_id
+):
     banco = conectar()
     cursor = banco.cursor()
 
     cursor.execute(
         """INSERT INTO atividades
-        (disciplina_id, turma_id, professor_id, descricao, data, hora_inicio, hora_fim)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-        (disciplina, turma, professor, descricao, data, inicio, fim)
+        (disciplina_id, turma_id, professor_id, descricao, data,
+        hora_inicio, hora_fim, usuario_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+        (
+            disciplina,
+            turma,
+            professor,
+            descricao,
+            data,
+            inicio,
+            fim,
+            usuario_id
+        )
     )
 
     banco.commit()
+
     cursor.close()
     banco.close()
 
 
-def buscar_atividades():
+def buscar_atividades(usuario_id, perfil):
     banco = conectar()
     cursor = banco.cursor()
 
-    cursor.execute("""
-        SELECT a.id, d.nome, t.nome, p.nome,
-        a.descricao, a.data, a.hora_inicio, a.hora_fim
-        FROM atividades a
-        JOIN disciplinas d ON d.id = a.disciplina_id
-        JOIN turmas t ON t.id = a.turma_id
-        JOIN professores p ON p.id = a.professor_id
-        ORDER BY a.id DESC
-    """)
+    # coordenador consegue visualizar todas as atividades
+    if perfil == "coordenador":
+        cursor.execute("""
+            SELECT a.id, d.nome, t.nome, p.nome,
+            a.descricao, a.data, a.hora_inicio, a.hora_fim
+            FROM atividades a
+            JOIN disciplinas d ON d.id = a.disciplina_id
+            JOIN turmas t ON t.id = a.turma_id
+            JOIN professores p ON p.id = a.professor_id
+            ORDER BY a.id DESC
+        """)
+
+    # professor visualiza somente as atividades dele
+    else:
+        cursor.execute("""
+            SELECT a.id, d.nome, t.nome, p.nome,
+            a.descricao, a.data, a.hora_inicio, a.hora_fim
+            FROM atividades a
+            JOIN disciplinas d ON d.id = a.disciplina_id
+            JOIN turmas t ON t.id = a.turma_id
+            JOIN professores p ON p.id = a.professor_id
+            WHERE a.usuario_id = %s
+            ORDER BY a.id DESC
+        """, (usuario_id,))
 
     dados = cursor.fetchall()
 
@@ -57,7 +92,10 @@ def buscar_disciplinas():
     banco = conectar()
     cursor = banco.cursor()
 
-    cursor.execute("SELECT id, nome FROM disciplinas ORDER BY nome")
+    cursor.execute(
+        "SELECT id, nome FROM disciplinas ORDER BY nome"
+    )
+
     dados = cursor.fetchall()
 
     lista = []
@@ -78,7 +116,10 @@ def buscar_turmas():
     banco = conectar()
     cursor = banco.cursor()
 
-    cursor.execute("SELECT id, nome FROM turmas ORDER BY nome")
+    cursor.execute(
+        "SELECT id, nome FROM turmas ORDER BY nome"
+    )
+
     dados = cursor.fetchall()
 
     lista = []
@@ -99,7 +140,10 @@ def buscar_professores():
     banco = conectar()
     cursor = banco.cursor()
 
-    cursor.execute("SELECT id, nome FROM professores ORDER BY nome")
+    cursor.execute(
+        "SELECT id, nome FROM professores ORDER BY nome"
+    )
+
     dados = cursor.fetchall()
 
     lista = []
