@@ -270,6 +270,9 @@ function Index() {
   const [senhaExclusao, setSenhaExclusao] = useState("");
   const [erroExclusao, setErroExclusao] = useState("");
   const [erroCadastro, setErroCadastro] = useState("");
+  const [logsAberto, setLogsAberto] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const [carregandoLogs, setCarregandoLogs] = useState(false);
 
   const [recuperacaoEmail, setRecuperacaoEmail] = useState("");
   const [mensagemRecuperacao, setMensagemRecuperacao] = useState("");
@@ -662,6 +665,33 @@ async function fazerCadastro(e) {
   } catch (erro) {
     console.log("Erro no cadastro", erro);
     setErroCadastro("Erro ao conectar com o servidor");
+  }
+}
+
+async function abrirLogs() {
+  setLogsAberto(true);
+  setCarregandoLogs(true);
+
+  try {
+    const resposta = await fetch(`${API}/logs`, {
+      credentials: "include",
+    });
+
+    const resultado = await resposta.json();
+
+    if (!resposta.ok) {
+      alert(resultado.erro || "Nao foi possivel carregar os logs");
+      setLogsAberto(false);
+      return;
+    }
+
+    setLogs(resultado);
+  } catch (erro) {
+    console.log("Erro ao carregar logs", erro);
+    alert("Erro ao conectar com o servidor");
+    setLogsAberto(false);
+  } finally {
+    setCarregandoLogs(false);
   }
 }
 
@@ -1601,6 +1631,16 @@ const totalPaginasAtividades = Math.ceil(
             </div>
 
             <div className="flex gap-2">
+              {usuario.perfil === "coordenador" && (
+                <button
+                  type="button"
+                  onClick={abrirLogs}
+                  className="rounded-lg bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line transition-colors hover:bg-card"
+                >
+                  Logs de auditoria
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={abrirMeusDados}
@@ -2309,6 +2349,64 @@ const totalPaginasAtividades = Math.ceil(
         tipo={documentoAberto}
         fechar={() => setDocumentoAberto(null)}
       />
+
+      {logsAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+          <div className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-[28px] bg-card p-6 ring-1 ring-line sm:p-8">
+
+            <div className="mb-5 flex items-start justify-between gap-4 border-b border-line pb-4">
+              <div>
+                <h2 className="text-xl font-bold">Logs de auditoria</h2>
+                <p className="mt-1 text-sm text-mute">
+                  Registro das ações realizadas no sistema
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setLogsAberto(false)}
+                className="rounded-xl bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line"
+              >
+                Fechar
+              </button>
+            </div>
+
+            {carregandoLogs ? (
+              <p className="text-sm text-mute">Carregando logs...</p>
+            ) : logs.length === 0 ? (
+              <p className="text-sm text-mute">Nenhum log encontrado.</p>
+            ) : (
+              <div className="space-y-3">
+                {logs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="rounded-xl bg-paper p-4 ring-1 ring-line"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-semibold">{log.acao}</p>
+
+                      <p className="text-xs text-mute">
+                        {log.data_hora}
+                      </p>
+                    </div>
+
+                    <p className="mt-2 text-sm">
+                      Usuario: {log.usuario || "Usuario removido"}
+                    </p>
+
+                    {log.detalhes && (
+                      <p className="mt-1 text-sm text-mute">
+                        {log.detalhes}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
 
       {meusDadosAberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
