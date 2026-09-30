@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_ControleRecursos"
+  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="Process_AlocacaoRecursos" name="Alocação de Recursos Pedagógicos" isExecutable="false">
+
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Professor" name="Professor">
+        <bpmn:flowNodeRef>StartEvent_Inicio</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AcessarSistema</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SelecionarAtividade</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EscolherRecurso</bpmn:flowNodeRef>
+      </bpmn:lane>
+
+      <bpmn:lane id="Lane_Sistema" name="Sistema">
+        <bpmn:flowNodeRef>Task_VerificarDisponibilidade</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_RecursoDisponivel</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RegistrarAlocacao</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ExibirConfirmacao</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_InformarConflito</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EscolherOutroRecurso</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Fim</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="StartEvent_Inicio" name="Início">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_AcessarSistema" name="Acessar o sistema">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_SelecionarAtividade" name="Selecionar atividade">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_EscolherRecurso" name="Escolher recurso">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_VerificarDisponibilidade" name="Verificar disponibilidade">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="Gateway_RecursoDisponivel" name="Recurso disponível?">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_RegistrarAlocacao" name="Registrar alocação">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_ExibirConfirmacao" name="Exibir confirmação">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_InformarConflito" name="Informar conflito">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_EscolherOutroRecurso" name="Escolher outro recurso">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="EndEvent_Fim" name="Fim">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_Inicio" targetRef="Task_AcessarSistema"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_AcessarSistema" targetRef="Task_SelecionarAtividade"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_SelecionarAtividade" targetRef="Task_EscolherRecurso"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_EscolherRecurso" targetRef="Task_VerificarDisponibilidade"/>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_VerificarDisponibilidade" targetRef="Gateway_RecursoDisponivel"/>
+    <bpmn:sequenceFlow id="Flow_6" name="Sim" sourceRef="Gateway_RecursoDisponivel" targetRef="Task_RegistrarAlocacao"/>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_RegistrarAlocacao" targetRef="Task_ExibirConfirmacao"/>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_ExibirConfirmacao" targetRef="EndEvent_Fim"/>
+    <bpmn:sequenceFlow id="Flow_9" name="Não" sourceRef="Gateway_RecursoDisponivel" targetRef="Task_InformarConflito"/>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_InformarConflito" targetRef="Task_EscolherOutroRecurso"/>
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_EscolherOutroRecurso" targetRef="Task_VerificarDisponibilidade"/>
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_AlocacaoRecursos">
+
+      <bpmndi:BPMNShape id="Lane_Professor_di" bpmnElement="Lane_Professor" isHorizontal="true">
+        <dc:Bounds x="100" y="100" width="1500" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Sistema_di" bpmnElement="Lane_Sistema" isHorizontal="true">
+        <dc:Bounds x="100" y="360" width="1500" height="350"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="StartEvent_Inicio_di" bpmnElement="StartEvent_Inicio">
+        <dc:Bounds x="150" y="210" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="150" y="250" width="50" height="20"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AcessarSistema_di" bpmnElement="Task_AcessarSistema">
+        <dc:Bounds x="230" y="185" width="150" height="85"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_SelecionarAtividade_di" bpmnElement="Task_SelecionarAtividade">
+        <dc:Bounds x="430" y="185" width="160" height="85"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_EscolherRecurso_di" bpmnElement="Task_EscolherRecurso">
+        <dc:Bounds x="640" y="185" width="155" height="85"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_VerificarDisponibilidade_di" bpmnElement="Task_VerificarDisponibilidade">
+        <dc:Bounds x="635" y="430" width="180" height="90"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Gateway_RecursoDisponivel_di" bpmnElement="Gateway_RecursoDisponivel" isMarkerVisible="true">
+        <dc:Bounds x="870" y="445" width="60" height="60"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="840" y="510" width="120" height="35"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RegistrarAlocacao_di" bpmnElement="Task_RegistrarAlocacao">
+        <dc:Bounds x="1000" y="430" width="160" height="90"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_ExibirConfirmacao_di" bpmnElement="Task_ExibirConfirmacao">
+        <dc:Bounds x="1210" y="430" width="160" height="90"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_Fim_di" bpmnElement="EndEvent_Fim">
+        <dc:Bounds x="1430" y="457" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1435" y="500" width="40" height="20"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_InformarConflito_di" bpmnElement="Task_InformarConflito">
+        <dc:Bounds x="840" y="575" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_EscolherOutroRecurso_di" bpmnElement="Task_EscolherOutroRecurso">
+        <dc:Bounds x="1070" y="575" width="180" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="186" y="228"/><di:waypoint x="230" y="228"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="380" y="228"/><di:waypoint x="430" y="228"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="590" y="228"/><di:waypoint x="640" y="228"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="718" y="270"/><di:waypoint x="718" y="430"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="815" y="475"/><di:waypoint x="870" y="475"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="930" y="475"/><di:waypoint x="1000" y="475"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="950" y="450" width="30" height="20"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1160" y="475"/><di:waypoint x="1210" y="475"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1370" y="475"/><di:waypoint x="1430" y="475"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="900" y="505"/><di:waypoint x="900" y="575"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="910" y="530" width="30" height="20"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1000" y="615"/><di:waypoint x="1070" y="615"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1160" y="655"/>
+        <di:waypoint x="1160" y="680"/>
+        <di:waypoint x="725" y="680"/>
+        <di:waypoint x="725" y="520"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
