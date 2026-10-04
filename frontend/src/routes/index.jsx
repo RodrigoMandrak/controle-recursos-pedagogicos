@@ -176,17 +176,18 @@ function ModalDocumento({ tipo, fechar }) {
             <div>
               <h3 className="font-semibold text-ink">4. Compartilhamento e acesso</h3>
               <p className="mt-1">
-                Os dados são utilizados apenas nas funções do sistema acadêmico. Professores têm acesso limitado
+                Os dados são utilizados nas funções do sistema acadêmico. Professores têm acesso limitado
                 às próprias informações operacionais, enquanto o coordenador possui acesso administrativo conforme sua função.
+                Na consulta de feriados, o sistema utiliza a BrasilAPI e não envia nome, e-mail ou identificador institucional.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-ink">5. Direitos do usuário</h3>
               <p className="mt-1">
-                O usuário pode solicitar consulta, correção ou exclusão dos dados da conta. A opção de exclusão
-                será disponibilizada na área da conta e exigirá confirmação antes da remoção. Quando necessário para
-                preservar a integridade de registros de auditoria, informações identificadoras poderão ser desvinculadas ou anonimizadas.
+                O usuário pode consultar seus dados na área "Meus dados" e solicitar correção quando necessário.
+                O professor também pode excluir a própria conta mediante confirmação de senha. Para preservar a integridade
+                dos registros de auditoria, o vínculo direto com a conta pode ser removido sem apagar o histórico da ação.
               </p>
             </div>
 
@@ -337,6 +338,7 @@ const itensPorPagina = 5;
 
   const [feriado, setFeriado] = useState(null);
   const [consultandoFeriado, setConsultandoFeriado] = useState(false);
+  const [erroFeriado, setErroFeriado] = useState("");
 
 async function carregarAtividades() {
 
@@ -805,8 +807,22 @@ useEffect(() => {
 
 
   async function verificarDataFeriado(data) {
+    setErroFeriado("");
+    setFeriado(null);
+
     if (!data) {
-      setFeriado(null);
+      return;
+    }
+
+    // Evita chamadas enquanto o navegador ainda esta montando a data.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      return;
+    }
+
+    const ano = Number(data.slice(0, 4));
+
+    // Impede consultas como 0002, 0020, 0202 etc.
+    if (ano < 2000 || ano > 2100) {
       return;
     }
 
@@ -823,13 +839,21 @@ useEffect(() => {
       if (!resposta.ok) {
         console.log("Nao foi possivel consultar o feriado", resultado.erro);
         setFeriado(null);
+        setErroFeriado(
+          resultado.erro ||
+            "Nao foi possivel consultar os feriados no momento."
+        );
         return;
       }
 
       setFeriado(resultado);
+      setErroFeriado("");
     } catch (erro) {
       console.log("Erro ao consultar feriado", erro);
       setFeriado(null);
+      setErroFeriado(
+        "Servico de feriados indisponivel no momento. Tente novamente mais tarde."
+      );
     } finally {
       setConsultandoFeriado(false);
     }
@@ -1835,6 +1859,13 @@ const totalPaginasAtividades = Math.ceil(
                 <p className="mt-2 text-xs text-mute">
                   Consultando calendario de feriados...
                 </p>
+              )}
+
+              {!consultandoFeriado && erroFeriado && (
+                <div className="mt-2 rounded-xl bg-paper px-3 py-2 text-sm ring-1 ring-line">
+                  <span className="font-semibold">Aviso:</span>{" "}
+                  {erroFeriado}
+                </div>
               )}
 
               {!consultandoFeriado && feriado?.feriado && (
