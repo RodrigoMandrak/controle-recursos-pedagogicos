@@ -8,6 +8,7 @@ from controllers.atividade_controller import atividade_bp
 from controllers.alocacao_controller import alocacao_bp
 from controllers.usuario_controller import usuario_bp
 from controllers.recuperacao_controller import recuperacao_bp
+from controllers.log_controller import log_bp
 
 
 load_dotenv()
@@ -34,6 +35,7 @@ app.register_blueprint(alocacao_bp)
 app.register_blueprint(usuario_bp)
 app.register_blueprint(feriado_bp)
 app.register_blueprint(recuperacao_bp)
+app.register_blueprint(log_bp)
 
 if __name__ == "__main__":
     app.run(debug=True)

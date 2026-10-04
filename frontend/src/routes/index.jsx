@@ -176,17 +176,18 @@ function ModalDocumento({ tipo, fechar }) {
             <div>
               <h3 className="font-semibold text-ink">4. Compartilhamento e acesso</h3>
               <p className="mt-1">
-                Os dados são utilizados apenas nas funções do sistema acadêmico. Professores têm acesso limitado
+                Os dados são utilizados nas funções do sistema acadêmico. Professores têm acesso limitado
                 às próprias informações operacionais, enquanto o coordenador possui acesso administrativo conforme sua função.
+                Na consulta de feriados, o sistema utiliza a BrasilAPI e não envia nome, e-mail ou identificador institucional.
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-ink">5. Direitos do usuário</h3>
               <p className="mt-1">
-                O usuário pode solicitar consulta, correção ou exclusão dos dados da conta. A opção de exclusão
-                será disponibilizada na área da conta e exigirá confirmação antes da remoção. Quando necessário para
-                preservar a integridade de registros de auditoria, informações identificadoras poderão ser desvinculadas ou anonimizadas.
+                O usuário pode consultar seus dados na área "Meus dados" e solicitar correção quando necessário.
+                O professor também pode excluir a própria conta mediante confirmação de senha. Para preservar a integridade
+                dos registros de auditoria, o vínculo direto com a conta pode ser removido sem apagar o histórico da ação.
               </p>
             </div>
 
@@ -270,6 +271,9 @@ function Index() {
   const [senhaExclusao, setSenhaExclusao] = useState("");
   const [erroExclusao, setErroExclusao] = useState("");
   const [erroCadastro, setErroCadastro] = useState("");
+  const [logsAberto, setLogsAberto] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const [carregandoLogs, setCarregandoLogs] = useState(false);
 
   const [recuperacaoEmail, setRecuperacaoEmail] = useState("");
   const [mensagemRecuperacao, setMensagemRecuperacao] = useState("");
@@ -334,6 +338,7 @@ const itensPorPagina = 5;
 
   const [feriado, setFeriado] = useState(null);
   const [consultandoFeriado, setConsultandoFeriado] = useState(false);
+  const [erroFeriado, setErroFeriado] = useState("");
 
 async function carregarAtividades() {
 
@@ -665,6 +670,33 @@ async function fazerCadastro(e) {
   }
 }
 
+async function abrirLogs() {
+  setLogsAberto(true);
+  setCarregandoLogs(true);
+
+  try {
+    const resposta = await fetch(`${API}/logs`, {
+      credentials: "include",
+    });
+
+    const resultado = await resposta.json();
+
+    if (!resposta.ok) {
+      alert(resultado.erro || "Nao foi possivel carregar os logs");
+      setLogsAberto(false);
+      return;
+    }
+
+    setLogs(resultado);
+  } catch (erro) {
+    console.log("Erro ao carregar logs", erro);
+    alert("Erro ao conectar com o servidor");
+    setLogsAberto(false);
+  } finally {
+    setCarregandoLogs(false);
+  }
+}
+
 async function fazerLogout() {
   try {
     await fetch(`${API}/logout`, {
@@ -775,8 +807,22 @@ useEffect(() => {
 
 
   async function verificarDataFeriado(data) {
+    setErroFeriado("");
+    setFeriado(null);
+
     if (!data) {
-      setFeriado(null);
+      return;
+    }
+
+    // Evita chamadas enquanto o navegador ainda esta montando a data.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      return;
+    }
+
+    const ano = Number(data.slice(0, 4));
+
+    // Impede consultas como 0002, 0020, 0202 etc.
+    if (ano < 2000 || ano > 2100) {
       return;
     }
 
@@ -793,13 +839,21 @@ useEffect(() => {
       if (!resposta.ok) {
         console.log("Nao foi possivel consultar o feriado", resultado.erro);
         setFeriado(null);
+        setErroFeriado(
+          resultado.erro ||
+            "Nao foi possivel consultar os feriados no momento."
+        );
         return;
       }
 
       setFeriado(resultado);
+      setErroFeriado("");
     } catch (erro) {
       console.log("Erro ao consultar feriado", erro);
       setFeriado(null);
+      setErroFeriado(
+        "Servico de feriados indisponivel no momento. Tente novamente mais tarde."
+      );
     } finally {
       setConsultandoFeriado(false);
     }
@@ -1601,6 +1655,16 @@ const totalPaginasAtividades = Math.ceil(
             </div>
 
             <div className="flex gap-2">
+              {usuario.perfil === "coordenador" && (
+                <button
+                  type="button"
+                  onClick={abrirLogs}
+                  className="rounded-lg bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line transition-colors hover:bg-card"
+                >
+                  Logs de auditoria
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={abrirMeusDados}
@@ -1795,6 +1859,13 @@ const totalPaginasAtividades = Math.ceil(
                 <p className="mt-2 text-xs text-mute">
                   Consultando calendario de feriados...
                 </p>
+              )}
+
+              {!consultandoFeriado && erroFeriado && (
+                <div className="mt-2 rounded-xl bg-paper px-3 py-2 text-sm ring-1 ring-line">
+                  <span className="font-semibold">Aviso:</span>{" "}
+                  {erroFeriado}
+                </div>
               )}
 
               {!consultandoFeriado && feriado?.feriado && (
@@ -2309,6 +2380,64 @@ const totalPaginasAtividades = Math.ceil(
         tipo={documentoAberto}
         fechar={() => setDocumentoAberto(null)}
       />
+
+      {logsAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+          <div className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-[28px] bg-card p-6 ring-1 ring-line sm:p-8">
+
+            <div className="mb-5 flex items-start justify-between gap-4 border-b border-line pb-4">
+              <div>
+                <h2 className="text-xl font-bold">Logs de auditoria</h2>
+                <p className="mt-1 text-sm text-mute">
+                  Registro das ações realizadas no sistema
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setLogsAberto(false)}
+                className="rounded-xl bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line"
+              >
+                Fechar
+              </button>
+            </div>
+
+            {carregandoLogs ? (
+              <p className="text-sm text-mute">Carregando logs...</p>
+            ) : logs.length === 0 ? (
+              <p className="text-sm text-mute">Nenhum log encontrado.</p>
+            ) : (
+              <div className="space-y-3">
+                {logs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="rounded-xl bg-paper p-4 ring-1 ring-line"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-semibold">{log.acao}</p>
+
+                      <p className="text-xs text-mute">
+                        {log.data_hora}
+                      </p>
+                    </div>
+
+                    <p className="mt-2 text-sm">
+                      Usuario: {log.usuario || "Usuario removido"}
+                    </p>
+
+                    {log.detalhes && (
+                      <p className="mt-1 text-sm text-mute">
+                        {log.detalhes}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
 
       {meusDadosAberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
