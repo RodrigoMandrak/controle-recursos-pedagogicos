@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)" exporterVersion="18.31.0">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Cadastro de atividade e alocação de recurso" processRef="Process_1" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Banco" name="Banco de dados / API">
+        <bpmn:flowNodeRef>Task_CacheFeriados</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_BrasilAPI</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Salvar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Log</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Sistema" name="Sistema">
+        <bpmn:flowNodeRef>Task_ValidarLogin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Login</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_LoginInvalido</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ValidarCampos</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Dados</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CamposInvalidos</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_VerificarFeriado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Cache</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_AvisoFeriado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ValidarConflito</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Conflito</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Conflito</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Confirmar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Feriado</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Pessoa" name="Pessoa">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Login</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PreencherAtividade</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EscolherRecurso</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_1</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_1" name="Início" />
+    <bpmn:userTask id="Task_Login" name="Informar e-mail e senha" />
+    <bpmn:serviceTask id="Task_ValidarLogin" name="Validar login" />
+    <bpmn:exclusiveGateway id="Gateway_Login" name="Credenciais válidas?" />
+    <bpmn:task id="Task_LoginInvalido" name="Exibir mensagem de login inválido" />
+    <bpmn:userTask id="Task_PreencherAtividade" name="Preencher dados da atividade" />
+    <bpmn:serviceTask id="Task_ValidarCampos" name="Validar campos e horários" />
+    <bpmn:exclusiveGateway id="Gateway_Dados" name="Dados válidos?" />
+    <bpmn:task id="Task_CamposInvalidos" name="Exibir campos inválidos" />
+    <bpmn:serviceTask id="Task_VerificarFeriado" name="Verificar feriado" />
+    <bpmn:serviceTask id="Task_CacheFeriados" name="Consultar cache de feriados" />
+    <bpmn:exclusiveGateway id="Gateway_Cache" name="Cache encontrado?" />
+    <bpmn:serviceTask id="Task_BrasilAPI" name="Consultar BrasilAPI" />
+    <bpmn:task id="Task_AvisoFeriado" name="Exibir aviso de feriado" />
+    <bpmn:userTask id="Task_EscolherRecurso" name="Escolher recurso" />
+    <bpmn:serviceTask id="Task_ValidarConflito" name="Validar conflito de recurso" />
+    <bpmn:exclusiveGateway id="Gateway_Conflito" name="Existe conflito?" />
+    <bpmn:task id="Task_Conflito" name="Informar conflito e pedir outra opção" />
+    <bpmn:serviceTask id="Task_Salvar" name="Salvar atividade e alocação" />
+    <bpmn:serviceTask id="Task_Log" name="Registrar log de auditoria" />
+    <bpmn:task id="Task_Confirmar" name="Confirmar cadastro e alocação" />
+    <bpmn:endEvent id="EndEvent_1" name="Fim" />
+    <bpmn:exclusiveGateway id="Gateway_Feriado" name="É feriado?" />
+    <bpmn:sequenceFlow id="Flow_01" sourceRef="StartEvent_1" targetRef="Task_Login" />
+    <bpmn:sequenceFlow id="Flow_06" name="Corrigir" sourceRef="Task_LoginInvalido" targetRef="Task_Login" />
+    <bpmn:sequenceFlow id="Flow_02" sourceRef="Task_Login" targetRef="Task_ValidarLogin" />
+    <bpmn:sequenceFlow id="Flow_03" sourceRef="Task_ValidarLogin" targetRef="Gateway_Login" />
+    <bpmn:sequenceFlow id="Flow_04" name="Sim" sourceRef="Gateway_Login" targetRef="Task_PreencherAtividade" />
+    <bpmn:sequenceFlow id="Flow_05" name="Não" sourceRef="Gateway_Login" targetRef="Task_LoginInvalido" />
+    <bpmn:sequenceFlow id="Flow_11" name="Ajustar" sourceRef="Task_CamposInvalidos" targetRef="Task_PreencherAtividade" />
+    <bpmn:sequenceFlow id="Flow_07" sourceRef="Task_PreencherAtividade" targetRef="Task_ValidarCampos" />
+    <bpmn:sequenceFlow id="Flow_08" sourceRef="Task_ValidarCampos" targetRef="Gateway_Dados" />
+    <bpmn:sequenceFlow id="Flow_09" name="Sim" sourceRef="Gateway_Dados" targetRef="Task_VerificarFeriado" />
+    <bpmn:sequenceFlow id="Flow_10" name="Não" sourceRef="Gateway_Dados" targetRef="Task_CamposInvalidos" />
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="Task_VerificarFeriado" targetRef="Task_CacheFeriados" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_CacheFeriados" targetRef="Gateway_Cache" />
+    <bpmn:sequenceFlow id="Flow_14" name="Sim" sourceRef="Gateway_Cache" targetRef="Gateway_Feriado" />
+    <bpmn:sequenceFlow id="Flow_15" name="Não" sourceRef="Gateway_Cache" targetRef="Task_BrasilAPI" />
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="Task_BrasilAPI" targetRef="Gateway_Feriado" />
+    <bpmn:sequenceFlow id="Flow_17" name="Sim" sourceRef="Gateway_Feriado" targetRef="Task_AvisoFeriado" />
+    <bpmn:sequenceFlow id="Flow_19" name="Continuar" sourceRef="Task_AvisoFeriado" targetRef="Task_EscolherRecurso" />
+    <bpmn:sequenceFlow id="Flow_18" name="Não" sourceRef="Gateway_Feriado" targetRef="Task_EscolherRecurso" />
+    <bpmn:sequenceFlow id="Flow_23" name="Escolher outro" sourceRef="Task_Conflito" targetRef="Task_EscolherRecurso" />
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="Task_EscolherRecurso" targetRef="Task_ValidarConflito" />
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="Task_ValidarConflito" targetRef="Gateway_Conflito" />
+    <bpmn:sequenceFlow id="Flow_22" name="Sim" sourceRef="Gateway_Conflito" targetRef="Task_Conflito" />
+    <bpmn:sequenceFlow id="Flow_24" name="Não" sourceRef="Gateway_Conflito" targetRef="Task_Salvar" />
+    <bpmn:sequenceFlow id="Flow_25" sourceRef="Task_Salvar" targetRef="Task_Log" />
+    <bpmn:sequenceFlow id="Flow_26" sourceRef="Task_Log" targetRef="Task_Confirmar" />
+    <bpmn:sequenceFlow id="Flow_27" sourceRef="Task_Confirmar" targetRef="EndEvent_1" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="150" y="80" width="2390" height="600" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Banco_di" bpmnElement="Lane_Banco" isHorizontal="true" bioc:stroke="#4F9A69" bioc:fill="#EEFAF2">
+        <dc:Bounds x="180" y="510" width="2360" height="170" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Sistema_di" bpmnElement="Lane_Sistema" isHorizontal="true" bioc:stroke="#4A78B8" bioc:fill="#EEF5FF">
+        <dc:Bounds x="180" y="240" width="2360" height="270" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Pessoa_di" bpmnElement="Lane_Pessoa" isHorizontal="true" bioc:stroke="#B07A00" bioc:fill="#FFF8E6">
+        <dc:Bounds x="180" y="80" width="2360" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1" bioc:stroke="#3B8A3B" bioc:fill="#E8F8E8">
+        <dc:Bounds x="215" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="220" y="182" width="27" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Login_di" bpmnElement="Task_Login" bioc:stroke="#D99A00" bioc:fill="#FFF8E6">
+        <dc:Bounds x="275" y="128" width="135" height="66" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ValidarLogin_di" bpmnElement="Task_ValidarLogin" bioc:stroke="#4A78B8" bioc:fill="#EEF5FF">
+        <dc:Bounds x="455" y="280" width="135" height="66" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Login_di" bpmnElement="Gateway_Login" isMarkerVisible="true" bioc:stroke="#7A56A5" bioc:fill="#F7F0FF">
+        <dc:Bounds x="630" y="288" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="660" y="256" width="59" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_LoginInvalido_di" bpmnElement="Task_LoginInvalido" bioc:stroke="#888888" bioc:fill="#F7F7F7">
+        <dc:Bounds x="585" y="410" width="145" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PreencherAtividade_di" bpmnElement="Task_PreencherAtividade" bioc:stroke="#D99A00" bioc:fill="#FFF8E6">
+        <dc:Bounds x="765" y="128" width="150" height="66" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ValidarCampos_di" bpmnElement="Task_ValidarCampos" bioc:stroke="#4A78B8" bioc:fill="#EEF5FF">
+        <dc:Bounds x="960" y="280" width="145" height="66" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Dados_di" bpmnElement="Gateway_Dados" isMarkerVisible="true" bioc:stroke="#7A56A5" bioc:fill="#F7F0FF">
+        <dc:Bounds x="1145" y="288" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1132" y="263" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CamposInvalidos_di" bpmnElement="Task_CamposInvalidos" bioc:stroke="#888888" bioc:fill="#F7F7F7">
+        <dc:Bounds x="1100" y="410" width="140" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_VerificarFeriado_di" bpmnElement="Task_VerificarFeriado" bioc:stroke="#4A78B8" bioc:fill="#EEF5FF">
+        <dc:Bounds x="1255" y="280" width="140" height="66" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CacheFeriados_di" bpmnElement="Task_CacheFeriados" bioc:stroke="#4F9A69" bioc:fill="#EEFAF2">
+        <dc:Bounds x="1250" y="560" width="155" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Cache_di" bpmnElement="Gateway_Cache" isMarkerVisible="true" bioc:stroke="#7A56A5" bioc:fill="#F7F0FF">
+        <dc:Bounds x="1445" y="288" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1439" y="250.5" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_BrasilAPI_di" bpmnElement="Task_BrasilAPI" bioc:stroke="#4F9A69" bioc:fill="#EEFAF2">
+        <dc:Bounds x="1520" y="560" width="145" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_AvisoFeriado_di" bpmnElement="Task_AvisoFeriado" bioc:stroke="#888888" bioc:fill="#F7F7F7">
+        <dc:Bounds x="1640" y="410" width="145" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_EscolherRecurso_di" bpmnElement="Task_EscolherRecurso" bioc:stroke="#D99A00" bioc:fill="#FFF8E6">
+        <dc:Bounds x="1835" y="128" width="145" height="66" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ValidarConflito_di" bpmnElement="Task_ValidarConflito" bioc:stroke="#4A78B8" bioc:fill="#EEF5FF">
+        <dc:Bounds x="1850" y="280" width="150" height="66" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Conflito_di" bpmnElement="Gateway_Conflito" isMarkerVisible="true" bioc:stroke="#7A56A5" bioc:fill="#F7F0FF">
+        <dc:Bounds x="2040" y="288" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2028" y="273" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Conflito_di" bpmnElement="Task_Conflito" bioc:stroke="#888888" bioc:fill="#F7F7F7">
+        <dc:Bounds x="1980" y="410" width="170" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Salvar_di" bpmnElement="Task_Salvar" bioc:stroke="#4F9A69" bioc:fill="#EEFAF2">
+        <dc:Bounds x="2115" y="560" width="155" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Log_di" bpmnElement="Task_Log" bioc:stroke="#4F9A69" bioc:fill="#EEFAF2">
+        <dc:Bounds x="2300" y="560" width="145" height="62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Confirmar_di" bpmnElement="Task_Confirmar" bioc:stroke="#4A78B8" bioc:fill="#EEF5FF">
+        <dc:Bounds x="2295" y="280" width="155" height="66" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1" bioc:stroke="#C44A4A" bioc:fill="#FDECEC">
+        <dc:Bounds x="2465" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2474" y="182" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Feriado_di" bpmnElement="Gateway_Feriado" isMarkerVisible="true" bioc:stroke="#7A56A5" bioc:fill="#F7F0FF">
+        <dc:Bounds x="1568" y="288" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1567" y="264" width="51" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_01_di" bpmnElement="Flow_01">
+        <di:waypoint x="251" y="160" />
+        <di:waypoint x="275" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_02_di" bpmnElement="Flow_02">
+        <di:waypoint x="410" y="161" />
+        <di:waypoint x="432" y="161" />
+        <di:waypoint x="432" y="313" />
+        <di:waypoint x="455" y="313" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_03_di" bpmnElement="Flow_03">
+        <di:waypoint x="590" y="313" />
+        <di:waypoint x="630" y="313" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_04_di" bpmnElement="Flow_04">
+        <di:waypoint x="655" y="288" />
+        <di:waypoint x="655" y="225" />
+        <di:waypoint x="840" y="225" />
+        <di:waypoint x="840" y="194" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="677" y="206" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05_di" bpmnElement="Flow_05">
+        <di:waypoint x="655" y="338" />
+        <di:waypoint x="655" y="410" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="665" y="369" width="21" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_06_di" bpmnElement="Flow_06">
+        <di:waypoint x="585" y="441" />
+        <di:waypoint x="342" y="441" />
+        <di:waypoint x="342" y="194" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="454" y="421" width="37" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07_di" bpmnElement="Flow_07">
+        <di:waypoint x="915" y="161" />
+        <di:waypoint x="937" y="161" />
+        <di:waypoint x="937" y="313" />
+        <di:waypoint x="960" y="313" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_08_di" bpmnElement="Flow_08">
+        <di:waypoint x="1105" y="313" />
+        <di:waypoint x="1145" y="313" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_09_di" bpmnElement="Flow_09">
+        <di:waypoint x="1195" y="313" />
+        <di:waypoint x="1255" y="313" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1214" y="292" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1170" y="338" />
+        <di:waypoint x="1170" y="410" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1180" y="369" width="21" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1100" y="441" />
+        <di:waypoint x="840" y="441" />
+        <di:waypoint x="840" y="194" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="958" y="421" width="35" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1325" y="346" />
+        <di:waypoint x="1325" y="560" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1405" y="591" />
+        <di:waypoint x="1470" y="591" />
+        <di:waypoint x="1470" y="338" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1495" y="313" />
+        <di:waypoint x="1568" y="313" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1522" y="292" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="1470" y="338" />
+        <di:waypoint x="1470" y="530" />
+        <di:waypoint x="1592" y="530" />
+        <di:waypoint x="1592" y="560" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1480" y="450" width="21" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint x="1593" y="560" />
+        <di:waypoint x="1593" y="338" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint x="1593" y="338" />
+        <di:waypoint x="1593" y="374" />
+        <di:waypoint x="1710" y="374" />
+        <di:waypoint x="1710" y="410" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1622" y="350" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18">
+        <di:waypoint x="1618" y="313" />
+        <di:waypoint x="1775" y="313" />
+        <di:waypoint x="1775" y="161" />
+        <di:waypoint x="1835" y="161" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1690" y="292" width="21" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19_di" bpmnElement="Flow_19">
+        <di:waypoint x="1785" y="441" />
+        <di:waypoint x="1805" y="441" />
+        <di:waypoint x="1805" y="177" />
+        <di:waypoint x="1835" y="177" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1794" y="421" width="48" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_20_di" bpmnElement="Flow_20">
+        <di:waypoint x="1908" y="194" />
+        <di:waypoint x="1908" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_21_di" bpmnElement="Flow_21">
+        <di:waypoint x="2000" y="313" />
+        <di:waypoint x="2040" y="313" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_22_di" bpmnElement="Flow_22">
+        <di:waypoint x="2065" y="338" />
+        <di:waypoint x="2065" y="410" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2075" y="369" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_23_di" bpmnElement="Flow_23">
+        <di:waypoint x="1980" y="441" />
+        <di:waypoint x="1810" y="441" />
+        <di:waypoint x="1810" y="144" />
+        <di:waypoint x="1835" y="144" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1876" y="421" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_24_di" bpmnElement="Flow_24">
+        <di:waypoint x="2090" y="313" />
+        <di:waypoint x="2192" y="313" />
+        <di:waypoint x="2192" y="560" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2120" y="292" width="21" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_25_di" bpmnElement="Flow_25">
+        <di:waypoint x="2270" y="591" />
+        <di:waypoint x="2300" y="591" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_26_di" bpmnElement="Flow_26">
+        <di:waypoint x="2372" y="560" />
+        <di:waypoint x="2372" y="346" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_27_di" bpmnElement="Flow_27">
+        <di:waypoint x="2372" y="280" />
+        <di:waypoint x="2372" y="220" />
+        <di:waypoint x="2470" y="220" />
+        <di:waypoint x="2470" y="172" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
