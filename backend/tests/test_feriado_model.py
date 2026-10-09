@@ -1,4 +1,5 @@
 import unittest
+import pytest
 from unittest.mock import patch, Mock
 
 from models import feriado_model
@@ -83,6 +84,29 @@ class TestFeriadoModel(unittest.TestCase):
         resultado = feriado_model.verificar_feriado("2026-12-25")
 
         self.assertTrue(resultado.get("erro_api"))
+
+
+@pytest.mark.parametrize(
+    "data, esperado",
+    [
+        ("2000-01-01", True),
+        ("2100-12-31", True),
+        ("1999-12-31", False),
+        ("2101-01-01", False),
+    ]
+)
+def test_validar_data_nos_limites(data, esperado):
+    resultado = feriado_model.validar_data(data)
+
+    assert resultado is esperado
+
+
+@patch("models.feriado_model.requests.get")
+def test_data_invalida_nao_consulta_api(mock_get):
+    resultado = feriado_model.verificar_feriado("2026-02-30")
+
+    assert resultado["erro_data"] is True
+    mock_get.assert_not_called()
 
 
 if __name__ == "__main__":
