@@ -8,10 +8,19 @@ from models.alocacao_model import alterar_alocacao
 from models.alocacao_model import cancelar_alocacao
 from models.alocacao_model import validar_conflitos
 from models.alocacao_model import buscar_usuario_atividade
+from models.alocacao_model import buscar_recurso
 from models.log_model import registrar_log
 
 
 alocacao_bp = Blueprint("alocacoes", __name__)
+
+
+def converter_id(valor):
+    # evita erro 500 quando o front manda um id que nao e numero
+    try:
+        return int(valor)
+    except (TypeError, ValueError):
+        return None
 
 
 @alocacao_bp.route("/recursos", methods=["GET"])
@@ -45,6 +54,13 @@ def alocar_recurso():
             "erro": "Escolha uma atividade e um recurso"
         }), 400
 
+    recurso = converter_id(recurso)
+
+    if recurso is None:
+        return jsonify({
+            "erro": "Recurso invalido"
+        }), 400
+
     atividade_usuario = buscar_usuario_atividade(atividade)
 
     if not atividade_usuario:
@@ -59,6 +75,11 @@ def alocar_recurso():
             return jsonify({
                 "erro": "Voce nao tem permissao para essa atividade"
             }), 403
+
+    if not buscar_recurso(recurso):
+        return jsonify({
+            "erro": "Recurso nao encontrado"
+        }), 404
 
     print("tentando alocar:", atividade, recurso)
 
@@ -117,6 +138,13 @@ def editar_alocacao(id_alocacao):
             "erro": "Escolha um recurso"
         }), 400
 
+    recurso = converter_id(recurso)
+
+    if recurso is None:
+        return jsonify({
+            "erro": "Recurso invalido"
+        }), 400
+
     alocacao = buscar_alocacao(id_alocacao)
 
     if not alocacao:
@@ -134,7 +162,12 @@ def editar_alocacao(id_alocacao):
                 "erro": "Voce nao tem permissao para alterar essa alocacao"
             }), 403
 
-    if int(recurso) == recurso_atual:
+    if not buscar_recurso(recurso):
+        return jsonify({
+            "erro": "Recurso nao encontrado"
+        }), 404
+
+    if recurso == recurso_atual:
         return jsonify({
             "erro": "Escolha um recurso diferente"
         }), 400
