@@ -28,6 +28,24 @@ def buscar_recursos():
     return lista
 
 
+def buscar_recurso(id_recurso):
+    banco = conectar()
+    cursor = banco.cursor()
+
+    cursor.execute("""
+        SELECT id
+        FROM recursos
+        WHERE id = %s
+    """, (id_recurso,))
+
+    recurso = cursor.fetchone()
+
+    cursor.close()
+    banco.close()
+
+    return recurso
+
+
 def pegar_atividade(id_atividade):
     banco = conectar()
     cursor = banco.cursor()
