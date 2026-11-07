@@ -7,8 +7,8 @@
         <mxCell id="2" parent="1" style="text;html=0;strokeColor=none;fillColor=#ffffff;opacity=85;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontFamily=Helvetica;fontStyle=1;fontColor=#333333;" value="Diagrama de Classes - Sistema de Controle de Recursos Pedagógicos" vertex="1">
           <mxGeometry height="40" width="900" x="350" y="20" as="geometry" />
         </mxCell>
-        <mxCell id="10" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=10;spacingRight=8;spacingTop=8;fontSize=12;fontFamily=Helvetica;fontStyle=0;strokeWidth=1.4;rounded=0;strokeColor=#6c8ebf;fillColor=#dae8fc;" value="Usuario&#xa;&#xa;ATRIBUTOS&#xa;- id: int&#xa;- nome: string&#xa;- email: string&#xa;- senha_hash: string&#xa;- perfil: string&#xa;- aceitou_termos: bool&#xa;- data_aceite: datetime&#xa;&#xa;MÉTODOS&#xa;+ autenticar()&#xa;+ alterar_senha()&#xa;+ excluir_conta()" vertex="1">
-          <mxGeometry height="275" width="270" x="90" y="120" as="geometry" />
+        <mxCell id="10" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=10;spacingRight=8;spacingTop=8;fontSize=12;fontFamily=Helvetica;fontStyle=0;strokeWidth=1.4;rounded=0;strokeColor=#6c8ebf;fillColor=#dae8fc;" value="Usuario&#xa;&#xa;ATRIBUTOS&#xa;- id: int&#xa;- nome: string&#xa;- email: string&#xa;- senha_hash: string&#xa;- perfil: string&#xa;- identificador_institucional: string&#xa;- aceitou_termos: bool&#xa;- data_aceite: datetime&#xa;&#xa;MÉTODOS&#xa;+ cadastrar()&#xa;+ autenticar()&#xa;+ alterar_senha()&#xa;+ excluir_conta()" vertex="1">
+          <mxGeometry height="300" width="270" x="90" y="120" as="geometry" />
         </mxCell>
         <mxCell id="11" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=10;spacingRight=8;spacingTop=8;fontSize=12;fontFamily=Helvetica;fontStyle=0;strokeWidth=1.4;rounded=0;strokeColor=#9673a6;fillColor=#e1d5e7;" value="LogAuditoria&#xa;&#xa;ATRIBUTOS&#xa;- id: int&#xa;- usuario_id: int&#xa;- acao: string&#xa;- detalhes: string&#xa;- data_hora: datetime&#xa;&#xa;MÉTODOS&#xa;+ registrar()&#xa;+ consultar()" vertex="1">
           <mxGeometry height="205" width="270" x="90" y="480" as="geometry" />
@@ -16,7 +16,7 @@
         <mxCell id="13" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=10;spacingRight=8;spacingTop=8;fontSize=12;fontFamily=Helvetica;fontStyle=0;strokeWidth=1.4;rounded=0;strokeColor=#d6b656;fillColor=#fff2cc;" value="Professor&#xa;&#xa;ATRIBUTOS&#xa;- id: int&#xa;- nome: string" vertex="1">
           <mxGeometry height="115" width="235" x="460" y="90" as="geometry" />
         </mxCell>
-        <mxCell id="15" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=10;spacingRight=8;spacingTop=8;fontSize=12;fontFamily=Helvetica;fontStyle=0;strokeWidth=1.4;rounded=0;strokeColor=#d79b00;fillColor=#fce5cd;" value="Alocacao&#xa;&#xa;ATRIBUTOS&#xa;- id: int&#xa;- atividade_id: int&#xa;- recurso_id: int&#xa;&#xa;MÉTODOS&#xa;+ alocar()&#xa;+ alterar()&#xa;+ cancelar()" vertex="1">
+        <mxCell id="15" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=10;spacingRight=8;spacingTop=8;fontSize=12;fontFamily=Helvetica;fontStyle=0;strokeWidth=1.4;rounded=0;strokeColor=#d79b00;fillColor=#fce5cd;" value="Alocacao&#xa;&#xa;ATRIBUTOS&#xa;- id: int&#xa;- atividade_id: int&#xa;- recurso_id: int&#xa;&#xa;MÉTODOS&#xa;+ alocar()&#xa;+ validar_conflitos()&#xa;+ alterar()&#xa;+ cancelar()" vertex="1">
           <mxGeometry height="190" width="260" x="470" y="720" as="geometry" />
         </mxCell>
         <mxCell id="16" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=10;spacingRight=8;spacingTop=8;fontSize=12;fontFamily=Helvetica;fontStyle=0;strokeWidth=1.4;rounded=0;strokeColor=#d6b656;fillColor=#fff2cc;" value="Disciplina&#xa;&#xa;ATRIBUTOS&#xa;- id: int&#xa;- nome: string" vertex="1">
@@ -25,8 +25,8 @@
         <mxCell id="17" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=10;spacingRight=8;spacingTop=8;fontSize=12;fontFamily=Helvetica;fontStyle=0;strokeWidth=1.4;rounded=0;strokeColor=#d6b656;fillColor=#fff2cc;" value="Turma&#xa;&#xa;ATRIBUTOS&#xa;- id: int&#xa;- nome: string" vertex="1">
           <mxGeometry height="115" width="235" x="900" y="330" as="geometry" />
         </mxCell>
-        <mxCell id="18" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=10;spacingRight=8;spacingTop=8;fontSize=12;fontFamily=Helvetica;fontStyle=0;strokeWidth=1.4;rounded=0;strokeColor=#d79b00;fillColor=#fce5cd;" value="Recurso&#xa;&#xa;ATRIBUTOS&#xa;- id: int&#xa;- nome: string&#xa;- tipo: string&#xa;- status: string" vertex="1">
-          <mxGeometry height="155" width="245" x="900" y="720" as="geometry" />
+        <mxCell id="18" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=10;spacingRight=8;spacingTop=8;fontSize=12;fontFamily=Helvetica;fontStyle=0;strokeWidth=1.4;rounded=0;strokeColor=#d79b00;fillColor=#fce5cd;" value="Recurso&#xa;&#xa;ATRIBUTOS&#xa;- id: int&#xa;- nome: string&#xa;- tipo: string&#xa;- status: string&#xa;&#xa;MÉTODOS&#xa;+ listar()" vertex="1">
+          <mxGeometry height="175" width="245" x="900" y="720" as="geometry" />
         </mxCell>
         <mxCell id="19" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=10;spacingRight=8;spacingTop=8;fontSize=12;fontFamily=Helvetica;fontStyle=0;strokeWidth=1.4;rounded=1;strokeColor=#9673a6;fillColor=#f3e5f5;" value="FeriadoModel&#xa;&#xa;ATRIBUTOS&#xa;- cache_feriados: dict&#xa;&#xa;MÉTODOS&#xa;+ validar_data()&#xa;+ buscar_feriados()&#xa;+ verificar_feriado()&#xa;+ limpar_cache()" vertex="1">
           <mxGeometry height="195" width="280" x="1245" y="270" as="geometry" />
@@ -41,10 +41,10 @@
           <mxGeometry height="18" width="42" x="388" y="407" as="geometry" />
         </mxCell>
         <mxCell id="203" parent="1" style="text;html=0;strokeColor=none;fillColor=#ffffff;opacity=85;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontFamily=Helvetica;fontStyle=0;fontColor=#333333;" value="gera" vertex="1">
-          <mxGeometry height="18" width="42" x="235" y="425" as="geometry" />
+          <mxGeometry height="18" width="42" x="235" y="440" as="geometry" />
         </mxCell>
         <mxCell id="204" parent="1" style="text;html=0;strokeColor=none;fillColor=#ffffff;opacity=85;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontFamily=Helvetica;fontStyle=0;fontColor=#333333;" value="1" vertex="1">
-          <mxGeometry height="18" width="20" x="205" y="397" as="geometry" />
+          <mxGeometry height="18" width="20" x="205" y="422" as="geometry" />
         </mxCell>
         <mxCell id="205" parent="1" style="text;html=0;strokeColor=none;fillColor=#ffffff;opacity=85;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontFamily=Helvetica;fontStyle=0;fontColor=#333333;" value="0..*" vertex="1">
           <mxGeometry height="18" width="42" x="205" y="460" as="geometry" />
@@ -206,9 +206,42 @@
         </mxCell>
         <mxCell id="101" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=0;jettySize=auto;html=0;dashed=0;endArrow=none;endFill=0;startArrow=none;strokeWidth=1.5;strokeColor=#666666;" value="">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="225" y="395" as="sourcePoint" />
+            <mxPoint x="225" y="420" as="sourcePoint" />
             <mxPoint x="225" y="480" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="dash1" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingLeft=10;spacingRight=8;spacingTop=8;fontSize=12;fontFamily=Helvetica;fontStyle=0;strokeWidth=1.4;rounded=1;strokeColor=#3d85c6;fillColor=#e3f0fa;" value="Dashboard&#xa;&#xa;ATRIBUTOS&#xa;- usuario_id: int&#xa;- perfil: string&#xa;&#xa;MÉTODOS&#xa;+ buscar_indicadores()&#xa;+ buscar_recursos_mais_usados()&#xa;+ buscar_atividades_por_disciplina()&#xa;+ buscar_atividades_por_mes()" vertex="1">
+          <mxGeometry height="205" width="290" x="1235" y="930" as="geometry" />
+        </mxCell>
+        <mxCell id="dashE1" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=0;jettySize=auto;html=0;dashed=1;dashPattern=7 5;endArrow=open;endFill=0;startArrow=none;strokeWidth=1.5;strokeColor=#666666;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1300" y="820" /></Array>
+            <mxPoint x="1300" y="930" as="sourcePoint" />
+            <mxPoint x="1145" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dashL1" parent="1" style="text;html=0;strokeColor=none;fillColor=#ffffff;opacity=85;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontFamily=Helvetica;fontStyle=0;fontColor=#333333;" value="consulta" vertex="1">
+          <mxGeometry height="18" width="60" x="1305" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="dashE2" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=0;jettySize=auto;html=0;dashed=1;dashPattern=7 5;endArrow=open;endFill=0;startArrow=none;strokeWidth=1.5;strokeColor=#666666;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1200" y="1110" /><mxPoint x="600" y="1110" /></Array>
+            <mxPoint x="1235" y="1110" as="sourcePoint" />
+            <mxPoint x="600" y="910" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dashL2" parent="1" style="text;html=0;strokeColor=none;fillColor=#ffffff;opacity=85;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontFamily=Helvetica;fontStyle=0;fontColor=#333333;" value="consulta" vertex="1">
+          <mxGeometry height="18" width="60" x="870" y="1092" as="geometry" />
+        </mxCell>
+        <mxCell id="dashE3" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=0;jettySize=auto;html=0;dashed=1;dashPattern=7 5;endArrow=open;endFill=0;startArrow=none;strokeWidth=1.5;strokeColor=#666666;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="800" y="980" /><mxPoint x="800" y="560" /></Array>
+            <mxPoint x="1235" y="980" as="sourcePoint" />
+            <mxPoint x="760" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dashL3" parent="1" style="text;html=0;strokeColor=none;fillColor=#ffffff;opacity=85;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontFamily=Helvetica;fontStyle=0;fontColor=#333333;" value="consulta" vertex="1">
+          <mxGeometry height="18" width="60" x="805" y="640" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { useState, useEffect } from "react";
+import Dashboard from "../components/Dashboard";
 
 const API = "http://localhost:5000";
 
@@ -1449,6 +1450,8 @@ const totalPaginasAtividades = Math.ceil(
                     <input
                       type="text"
                       value={cadastroForm.nome}
+                      minLength={3}
+                      maxLength={100}
                       onChange={(e) =>
                         setCadastroForm({ ...cadastroForm, nome: e.target.value })
                       }
@@ -1465,6 +1468,7 @@ const totalPaginasAtividades = Math.ceil(
                     <input
                       type="email"
                       value={cadastroForm.email}
+                      maxLength={150}
                       onChange={(e) =>
                         setCadastroForm({ ...cadastroForm, email: e.target.value })
                       }
@@ -1481,6 +1485,7 @@ const totalPaginasAtividades = Math.ceil(
                     <input
                       type="text"
                       value={cadastroForm.identificador_institucional}
+                      maxLength={50}
                       onChange={(e) =>
                         setCadastroForm({
                           ...cadastroForm,
@@ -1500,10 +1505,11 @@ const totalPaginasAtividades = Math.ceil(
                       <input
                         type="password"
                         value={cadastroForm.senha}
+                        minLength={8}
                         onChange={(e) =>
                           setCadastroForm({ ...cadastroForm, senha: e.target.value })
                         }
-                        placeholder="Digite sua senha"
+                        placeholder="Mínimo de 8 caracteres"
                         required
                         className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
                       />
@@ -1516,6 +1522,7 @@ const totalPaginasAtividades = Math.ceil(
                       <input
                         type="password"
                         value={cadastroForm.confirmar_senha}
+                        minLength={8}
                         onChange={(e) =>
                           setCadastroForm({
                             ...cadastroForm,
@@ -1684,6 +1691,7 @@ const totalPaginasAtividades = Math.ceil(
           </div>
 
         </header>
+        <Dashboard api={API} perfil={usuario.perfil} versao={`${activities.length}-${alocacoes.length}`} />
 
 
 
@@ -1846,6 +1854,7 @@ const totalPaginasAtividades = Math.ceil(
                 name="data"
 
                 value={form.data}
+                min={new Date().toLocaleDateString("en-CA")}
 
                 onChange={handleChange}
 
@@ -1946,6 +1955,7 @@ const totalPaginasAtividades = Math.ceil(
                 name="descricao"
 
                 value={form.descricao}
+                maxLength={500}
 
                 onChange={handleChange}
 
@@ -1958,6 +1968,7 @@ const totalPaginasAtividades = Math.ceil(
                 className="w-full resize-none rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line placeholder:text-mute/60 focus:outline-none focus:ring-2 focus:ring-green"
 
               />
+              <p className="mt-1 text-right text-xs text-mute">{form.descricao.length}/500</p>
 
             </label>
 
