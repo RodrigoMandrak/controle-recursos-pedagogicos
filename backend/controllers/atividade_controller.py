@@ -7,6 +7,12 @@ from models.atividade_model import buscar_turmas
 from models.atividade_model import buscar_professores
 from models.log_model import registrar_log
 
+from validacoes import converter_data
+from validacoes import data_passada
+from validacoes import horario_valido
+from validacoes import texto_no_limite
+from validacoes import TAMANHO_MAXIMO_DESCRICAO
+
 
 atividade_bp = Blueprint("atividades", __name__)
 
@@ -39,9 +45,31 @@ def cadastrar():
             "erro": "Preencha a data e o horario"
         }), 400
 
+    data_convertida = converter_data(data)
+
+    if not data_convertida:
+        return jsonify({
+            "erro": "Data invalida"
+        }), 400
+
+    if data_passada(data_convertida):
+        return jsonify({
+            "erro": "Nao e possivel cadastrar atividade em data passada"
+        }), 400
+
+    if not horario_valido(inicio) or not horario_valido(fim):
+        return jsonify({
+            "erro": "Horario invalido"
+        }), 400
+
     if fim <= inicio:
         return jsonify({
             "erro": "Horario final invalido"
+        }), 400
+
+    if not texto_no_limite(descricao, TAMANHO_MAXIMO_DESCRICAO):
+        return jsonify({
+            "erro": "A descricao deve ter no maximo 500 caracteres"
         }), 400
 
     salvar_atividade(

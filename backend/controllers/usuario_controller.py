@@ -8,6 +8,12 @@ from models.usuario_model import excluir_usuario
 
 from models.log_model import registrar_log
 
+from validacoes import email_valido
+from validacoes import senha_valida
+from validacoes import nome_valido
+from validacoes import texto_no_limite
+from validacoes import TAMANHO_MAXIMO_IDENTIFICADOR
+
 
 usuario_bp = Blueprint("usuarios", __name__)
 
@@ -26,6 +32,29 @@ def cadastrar():
     if not nome or not email or not senha:
         return jsonify({
             "erro": "Preencha os campos obrigatorios"
+        }), 400
+
+    nome = nome.strip()
+    email = email.strip()
+
+    if not nome_valido(nome):
+        return jsonify({
+            "erro": "O nome deve ter entre 3 e 100 caracteres"
+        }), 400
+
+    if not email_valido(email):
+        return jsonify({
+            "erro": "Informe um email valido"
+        }), 400
+
+    if not texto_no_limite(identificador, TAMANHO_MAXIMO_IDENTIFICADOR):
+        return jsonify({
+            "erro": "O identificador deve ter no maximo 50 caracteres"
+        }), 400
+
+    if not senha_valida(senha):
+        return jsonify({
+            "erro": "A senha deve ter pelo menos 8 caracteres"
         }), 400
 
     if senha != confirmar_senha:
