@@ -90,7 +90,12 @@ def alocar_recurso():
             "erro": erro
         }), 400
 
-    salvar_alocacao(atividade, recurso)
+    # o salvar confere o estoque de novo, travando o recurso,
+    # para o caso de duas pessoas alocarem no mesmo instante
+    if salvar_alocacao(atividade, recurso) is False:
+        return jsonify({
+            "erro": "Esse recurso acabou de ser reservado nesse horario. Escolha outro recurso"
+        }), 400
 
     registrar_log(
         session["usuario_id"],
@@ -179,7 +184,10 @@ def editar_alocacao(id_alocacao):
             "erro": erro
         }), 400
 
-    alterar_alocacao(id_alocacao, recurso)
+    if alterar_alocacao(id_alocacao, recurso) is False:
+        return jsonify({
+            "erro": "Esse recurso acabou de ser reservado nesse horario. Escolha outro recurso"
+        }), 400
 
     registrar_log(
         session["usuario_id"],

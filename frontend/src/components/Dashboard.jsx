@@ -45,8 +45,8 @@ function CardNumero({ titulo, valor, detalhe, destaque }) {
     <div
       className={
         destaque
-          ? "rounded-2xl bg-green p-4 text-white"
-          : "rounded-2xl bg-card p-4 ring-1 ring-line"
+          ? "rounded-2xl bg-[#4f7a63] p-5 text-white [box-shadow:0_18px_40px_-28px_rgba(47,74,60,.7)]"
+          : "rounded-2xl bg-card p-5 ring-1 ring-line [box-shadow:0_18px_40px_-30px_rgba(69,61,46,.4)]"
       }
     >
       <p
@@ -56,7 +56,7 @@ function CardNumero({ titulo, valor, detalhe, destaque }) {
       >
         {titulo}
       </p>
-      <p className="mt-1 text-3xl font-bold tabular-nums">{valor}</p>
+      <p className="mt-2 text-4xl font-bold tabular-nums">{valor}</p>
       <p className={`text-xs ${destaque ? "text-white/80" : "text-mute"}`}>
         {detalhe}
       </p>
@@ -66,7 +66,7 @@ function CardNumero({ titulo, valor, detalhe, destaque }) {
 
 function Painel({ titulo, subtitulo, children }) {
   return (
-    <div className="rounded-[24px] bg-card p-5 ring-1 ring-line">
+    <div className="rounded-[24px] bg-card p-6 ring-1 ring-line [box-shadow:0_18px_40px_-30px_rgba(69,61,46,.4)]">
       <h3 className="font-semibold">{titulo}</h3>
       <p className="mb-4 text-sm text-mute">{subtitulo}</p>
       {children}
@@ -82,25 +82,64 @@ function SemDados({ texto }) {
   );
 }
 
+// filtro vazio = dashboard completo (igual era antes)
+const FILTRO_VAZIO = { inicio: "", fim: "", disciplina: "" };
+
+// monta o "?inicio=...&fim=...&disciplina=..." so com os campos preenchidos
+function montarConsulta(filtro) {
+  const parametros = new URLSearchParams();
+  if (filtro.inicio) parametros.set("inicio", filtro.inicio);
+  if (filtro.fim) parametros.set("fim", filtro.fim);
+  if (filtro.disciplina) parametros.set("disciplina", filtro.disciplina);
+  const texto = parametros.toString();
+  return texto ? `?${texto}` : "";
+}
+
+// "2026-09-01" -> "01/09/2026"
+function formatarData(texto) {
+  const [ano, mes, dia] = texto.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
 function Dashboard({ api, perfil, versao }) {
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
+  // filtro: o que esta digitado nos campos e o que ja foi aplicado no painel
+  const [disciplinas, setDisciplinas] = useState([]);
+  const [campos, setCampos] = useState(FILTRO_VAZIO);
+  const [filtro, setFiltro] = useState(FILTRO_VAZIO);
+  const [erroFiltro, setErroFiltro] = useState("");
+
+  // lista de disciplinas para o select do filtro
+  useEffect(() => {
+    fetch(`${api}/disciplinas`, { credentials: "include" })
+      .then((resposta) => (resposta.ok ? resposta.json() : []))
+      .then((lista) => setDisciplinas(Array.isArray(lista) ? lista : []))
+      .catch(() => setDisciplinas([]));
+  }, [api]);
+
   useEffect(() => {
     async function carregar() {
       try {
         setErro("");
-        const resposta = await fetch(`${api}/dashboard`, {
+        const resposta = await fetch(`${api}/dashboard${montarConsulta(filtro)}`, {
           credentials: "include",
         });
         const resultado = await resposta.json();
 
         if (!resposta.ok) {
+          // erro no filtro: mantem o painel na tela e mostra o aviso embaixo do filtro
+          if (resposta.status === 400) {
+            setErroFiltro(resultado.erro || "Filtro inválido.");
+            return;
+          }
           setErro(resultado.erro || "Não foi possível carregar o dashboard.");
           return;
         }
 
+        setErroFiltro("");
         setDados(resultado);
       } catch {
         setErro("Não foi possível conectar com o servidor para carregar o dashboard.");
@@ -110,7 +149,30 @@ function Dashboard({ api, perfil, versao }) {
     }
 
     carregar();
-  }, [api, versao]);
+  }, [api, versao, filtro]);
+
+  function aplicarFiltro(e) {
+    e.preventDefault();
+
+    // mesma regra do back-end, conferida antes de mandar
+    if (campos.inicio && campos.fim && campos.fim < campos.inicio) {
+      setErroFiltro("A data final precisa ser depois da data inicial.");
+      return;
+    }
+
+    setErroFiltro("");
+    setFiltro({ ...campos });
+  }
+
+  function limparFiltro() {
+    setCampos(FILTRO_VAZIO);
+    setFiltro(FILTRO_VAZIO);
+    setErroFiltro("");
+  }
+
+  const temFiltro = Boolean(filtro.inicio || filtro.fim || filtro.disciplina);
+  const nomeDisciplina =
+    disciplinas.find((item) => String(item.id) === String(filtro.disciplina))?.nome || "";
 
   const ehCoordenador = perfil === "coordenador";
 
@@ -157,7 +219,80 @@ function Dashboard({ api, perfil, versao }) {
         <span className="font-hand text-2xl text-green">dashboard</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <form
+        onSubmit={aplicarFiltro}
+        className="rounded-2xl bg-card p-5 ring-1 ring-line [box-shadow:0_18px_40px_-30px_rgba(69,61,46,.4)]"
+        aria-label="Filtro do dashboard"
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label className="text-xs font-semibold uppercase tracking-wide text-mute">
+            De
+            <input
+              type="date"
+              value={campos.inicio}
+              onChange={(e) => setCampos({ ...campos, inicio: e.target.value })}
+              className="mt-1 w-full rounded-xl bg-paper px-3 py-2 text-sm font-normal normal-case tracking-normal text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+            />
+          </label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-mute">
+            Até
+            <input
+              type="date"
+              value={campos.fim}
+              onChange={(e) => setCampos({ ...campos, fim: e.target.value })}
+              className="mt-1 w-full rounded-xl bg-paper px-3 py-2 text-sm font-normal normal-case tracking-normal text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+            />
+          </label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-mute">
+            Disciplina
+            <select
+              value={campos.disciplina}
+              onChange={(e) => setCampos({ ...campos, disciplina: e.target.value })}
+              className="mt-1 w-full rounded-xl bg-paper px-3 py-2 text-sm font-normal normal-case tracking-normal text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+            >
+              <option value="">Todas</option>
+              {disciplinas.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-mute">
+            {temFiltro
+              ? `Filtrando: ${filtro.inicio ? `de ${formatarData(filtro.inicio)} ` : ""}${
+                  filtro.fim ? `até ${formatarData(filtro.fim)} ` : ""
+                }${nomeDisciplina ? `· ${nomeDisciplina}` : ""}`
+              : "Sem filtro: mostrando tudo"}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={limparFiltro}
+              className="rounded-lg bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line transition-colors hover:bg-card"
+            >
+              Limpar
+            </button>
+            <button
+              type="submit"
+              className="rounded-lg bg-[#4f7a63] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#3f6550]"
+            >
+              Filtrar
+            </button>
+          </div>
+        </div>
+
+        {erroFiltro && (
+          <p className="mt-3 rounded-xl bg-paper px-3 py-2 text-sm font-semibold text-[#8f3f2c] ring-1 ring-line">
+            {erroFiltro}
+          </p>
+        )}
+      </form>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <CardNumero
           destaque
           titulo="Atividades hoje"
@@ -167,7 +302,7 @@ function Dashboard({ api, perfil, versao }) {
         <CardNumero
           titulo="Atividades"
           valor={ind.total_atividades}
-          detalhe="cadastradas no total"
+          detalhe={temFiltro ? "no filtro escolhido" : "cadastradas no total"}
         />
         <CardNumero
           titulo="Recursos alocados"

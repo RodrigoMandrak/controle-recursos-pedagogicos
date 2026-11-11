@@ -1,3 +1,4 @@
+from datetime import date
 import unittest
 from unittest.mock import patch
 
@@ -82,8 +83,48 @@ class TestDashboardController(unittest.TestCase):
         self.assertEqual(dados["perfil"], "professor")
         self.assertEqual(dados["indicadores"]["total_atividades"], 3)
         # todas as consultas recebem o usuario e o perfil (professor so ve o que e dele)
+        sem_filtro = {"inicio": None, "fim": None, "disciplina": None}
         for mock in (mock_ind, mock_rec, mock_disc, mock_mes):
-            mock.assert_called_once_with(8, "professor")
+            mock.assert_called_once_with(8, "professor", sem_filtro)
+
+    @patch("controllers.dashboard_controller.buscar_atividades_por_mes", return_value=[])
+    @patch("controllers.dashboard_controller.buscar_atividades_por_disciplina", return_value=[])
+    @patch("controllers.dashboard_controller.buscar_recursos_mais_usados", return_value=[])
+    @patch("controllers.dashboard_controller.buscar_indicadores", return_value={})
+    def test_filtro_de_periodo_e_disciplina(self, mock_ind, mock_rec, mock_disc, mock_mes):
+        cliente = criar_cliente(dashboard_bp, usuario_id=1, perfil="coordenador")
+        resposta = cliente.get("/dashboard?inicio=2026-09-01&fim=2026-11-30&disciplina=2")
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(resposta.get_json()["filtros"],
+                         {"inicio": "2026-09-01", "fim": "2026-11-30", "disciplina": 2})
+        filtros = mock_ind.call_args[0][2]
+        self.assertEqual(filtros["inicio"], date(2026, 9, 1))
+        self.assertEqual(filtros["fim"], date(2026, 11, 30))
+        self.assertEqual(filtros["disciplina"], 2)
+
+    def test_filtro_com_data_invalida(self):
+        cliente = criar_cliente(dashboard_bp, usuario_id=1, perfil="coordenador")
+        resposta = cliente.get("/dashboard?inicio=2026-02-30")
+        self.assertEqual(resposta.status_code, 400)
+        self.assertEqual(resposta.get_json()["erro"], "Data inicial invalida")
+
+    def test_filtro_com_data_final_antes_da_inicial(self):
+        cliente = criar_cliente(dashboard_bp, usuario_id=1, perfil="coordenador")
+        resposta = cliente.get("/dashboard?inicio=2026-11-01&fim=2026-10-01")
+        self.assertEqual(resposta.status_code, 400)
+        self.assertIn("depois da data inicial", resposta.get_json()["erro"])
+
+    def test_filtro_com_periodo_muito_grande(self):
+        cliente = criar_cliente(dashboard_bp, usuario_id=1, perfil="coordenador")
+        resposta = cliente.get("/dashboard?inicio=2024-01-01&fim=2026-01-01")
+        self.assertEqual(resposta.status_code, 400)
+
+    def test_filtro_com_disciplina_invalida(self):
+        cliente = criar_cliente(dashboard_bp, usuario_id=1, perfil="coordenador")
+        resposta = cliente.get("/dashboard?disciplina=abc")
+        self.assertEqual(resposta.status_code, 400)
+        self.assertEqual(resposta.get_json()["erro"], "Disciplina invalida")
 
 
 if __name__ == "__main__":

@@ -1,20 +1,77 @@
+from datetime import date
+
 from banco import conectar
 
 
-def montar_filtro(usuario_id, perfil):
+def montar_filtro(usuario_id, perfil, filtros=None, com_periodo=True):
+    # devolve o WHERE do dashboard e os valores dele
+    # filtros (opcional): {"inicio": date, "fim": date, "disciplina": id}
+    filtros = filtros or {}
+    condicoes = []
+    parametros = []
+
     # coordenador ve os numeros de todos
     # professor ve somente as atividades que ele cadastrou
-    if perfil == "coordenador":
+    if perfil != "coordenador":
+        condicoes.append("a.usuario_id = %s")
+        parametros.append(usuario_id)
+
+    # filtro de periodo escolhido na tela
+    if com_periodo and filtros.get("inicio"):
+        condicoes.append("a.data >= %s")
+        parametros.append(filtros["inicio"])
+
+    if com_periodo and filtros.get("fim"):
+        condicoes.append("a.data <= %s")
+        parametros.append(filtros["fim"])
+
+    # filtro de disciplina escolhido na tela
+    if filtros.get("disciplina"):
+        condicoes.append("a.disciplina_id = %s")
+        parametros.append(filtros["disciplina"])
+
+    if not condicoes:
         return "", ()
 
-    return "WHERE a.usuario_id = %s", (usuario_id,)
+    return "WHERE " + " AND ".join(condicoes), tuple(parametros)
 
 
-def buscar_indicadores(usuario_id, perfil):
+def primeiro_dia_do_mes(dia):
+    return dia.replace(day=1)
+
+
+def somar_meses(dia, meses):
+    # trabalha sempre com o dia 1, entao nao tem problema de mes com 30 ou 31 dias
+    total = dia.year * 12 + (dia.month - 1) + meses
+    return date(total // 12, total % 12 + 1, 1)
+
+
+def meses_do_grafico(filtros=None):
+    # sem filtro: 4 meses para tras, o mes atual e o proximo (igual era antes)
+    filtros = filtros or {}
+    inicio = filtros.get("inicio")
+    fim = filtros.get("fim")
+    mes_atual = primeiro_dia_do_mes(date.today())
+
+    if inicio and fim:
+        return primeiro_dia_do_mes(inicio), primeiro_dia_do_mes(fim)
+
+    if inicio:
+        primeiro = primeiro_dia_do_mes(inicio)
+        return primeiro, somar_meses(primeiro, 5)
+
+    if fim:
+        ultimo = primeiro_dia_do_mes(fim)
+        return somar_meses(ultimo, -5), ultimo
+
+    return somar_meses(mes_atual, -4), somar_meses(mes_atual, 1)
+
+
+def buscar_indicadores(usuario_id, perfil, filtros=None):
     banco = conectar()
     cursor = banco.cursor()
 
-    filtro, parametros = montar_filtro(usuario_id, perfil)
+    filtro, parametros = montar_filtro(usuario_id, perfil, filtros)
 
     # total de atividades
     cursor.execute(f"""
@@ -34,15 +91,17 @@ def buscar_indicadores(usuario_id, perfil):
     total_alocacoes = cursor.fetchone()[0]
 
     # atividades marcadas para hoje
+    # aqui o periodo nao entra (hoje e sempre hoje), so o perfil e a disciplina
+    filtro_sem_periodo, parametros_hoje = montar_filtro(usuario_id, perfil, filtros, com_periodo=False)
     filtro_hoje = "WHERE a.data = CURRENT_DATE"
-    if filtro:
-        filtro_hoje = filtro + " AND a.data = CURRENT_DATE"
+    if filtro_sem_periodo:
+        filtro_hoje = filtro_sem_periodo + " AND a.data = CURRENT_DATE"
 
     cursor.execute(f"""
         SELECT COUNT(*)
         FROM atividades a
         {filtro_hoje}
-    """, parametros)
+    """, parametros_hoje)
     atividades_hoje = cursor.fetchone()[0]
 
     # atividades sem nenhum recurso alocado
@@ -55,7 +114,7 @@ def buscar_indicadores(usuario_id, perfil):
     sem_recurso = cursor.fetchone()[0]
 
     # recursos cadastrados e quantos ja foram usados
-    cursor.execute("SELECT COUNT(*) FROM recursos")
+    cursor.execute("SELECT COUNT(*) FROM recursos WHERE ativo = TRUE")
     total_recursos = cursor.fetchone()[0]
 
     cursor.execute(f"""
@@ -79,11 +138,11 @@ def buscar_indicadores(usuario_id, perfil):
     }
 
 
-def buscar_recursos_mais_usados(usuario_id, perfil):
+def buscar_recursos_mais_usados(usuario_id, perfil, filtros=None):
     banco = conectar()
     cursor = banco.cursor()
 
-    filtro, parametros = montar_filtro(usuario_id, perfil)
+    filtro, parametros = montar_filtro(usuario_id, perfil, filtros)
 
     cursor.execute(f"""
         SELECT r.nome, r.tipo, COUNT(*) AS total
@@ -112,11 +171,11 @@ def buscar_recursos_mais_usados(usuario_id, perfil):
     return lista
 
 
-def buscar_atividades_por_disciplina(usuario_id, perfil):
+def buscar_atividades_por_disciplina(usuario_id, perfil, filtros=None):
     banco = conectar()
     cursor = banco.cursor()
 
-    filtro, parametros = montar_filtro(usuario_id, perfil)
+    filtro, parametros = montar_filtro(usuario_id, perfil, filtros)
 
     cursor.execute(f"""
         SELECT d.nome, COUNT(*) AS total
@@ -142,29 +201,32 @@ def buscar_atividades_por_disciplina(usuario_id, perfil):
     return lista
 
 
-def buscar_atividades_por_mes(usuario_id, perfil):
+def buscar_atividades_por_mes(usuario_id, perfil, filtros=None):
     banco = conectar()
     cursor = banco.cursor()
 
-    filtro, parametros = montar_filtro(usuario_id, perfil)
+    filtro, parametros = montar_filtro(usuario_id, perfil, filtros)
 
-    # gera 6 meses: 4 meses para tras, o mes atual e o proximo
+    # gera um mes por linha no periodo do grafico
     # assim os meses sem atividade tambem aparecem com zero
+    primeiro_mes, ultimo_mes = meses_do_grafico(filtros)
+
     condicao = "date_trunc('month', a.data) = mes"
     if filtro:
-        condicao += " AND a.usuario_id = %s"
+        # as mesmas condicoes do WHERE entram no JOIN (perfil, periodo e disciplina)
+        condicao += " AND " + filtro.replace("WHERE ", "", 1)
 
     cursor.execute(f"""
         SELECT mes::date, COUNT(a.id) AS total
         FROM generate_series(
-            date_trunc('month', CURRENT_DATE) - INTERVAL '4 months',
-            date_trunc('month', CURRENT_DATE) + INTERVAL '1 month',
+            %s::date,
+            %s::date,
             INTERVAL '1 month'
         ) AS mes
         LEFT JOIN atividades a ON {condicao}
         GROUP BY mes
         ORDER BY mes
-    """, parametros)
+    """, (primeiro_mes, ultimo_mes) + parametros)
 
     dados = cursor.fetchall()
     lista = []
