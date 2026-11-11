@@ -24,8 +24,12 @@ export default defineConfig({
           rewrite: (caminho) => caminho.replace(/^\/api/, ""),
         },
       },
-      // libera abrir o front pelo link do tunel (trycloudflare.com)
+      // libera abrir o front por outro endereco (Render, tunel)
       allowedHosts: true,
+      // no Render (variavel RENDER existe) desliga o recarregamento automatico (HMR):
+      // ele tenta abrir uma conexao na porta 8080, que o Render nao deixa,
+      // e a pagina fica presa em "Carregando..."
+      hmr: process.env.RENDER ? false : undefined,
     },
   },
 });
