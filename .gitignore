@@ -3,3 +3,9 @@ __pycache__/
 *.pyc
 node_modules/
 .env
+# arquivos locais que nao vao para o GitHub
+*.bat
+ACESSOS_DEMONSTRACAO.txt
+cloudflared.exe
+.pytest_cache/
+.coverage

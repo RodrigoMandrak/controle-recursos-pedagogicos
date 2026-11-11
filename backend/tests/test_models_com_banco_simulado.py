@@ -135,6 +135,40 @@ class TestDashboardModel(unittest.TestCase):
         self.assertIn("a.usuario_id = %s", cursor.execute.call_args[0][0])
 
 
+    def test_filtro_com_periodo_e_disciplina(self):
+        filtros = {"inicio": date(2026, 9, 1), "fim": date(2026, 11, 30), "disciplina": 2}
+        filtro, parametros = dashboard_model.montar_filtro(7, "professor", filtros)
+        self.assertEqual(filtro, "WHERE a.usuario_id = %s AND a.data >= %s AND a.data <= %s AND a.disciplina_id = %s")
+        self.assertEqual(parametros, (7, date(2026, 9, 1), date(2026, 11, 30), 2))
+
+    def test_filtro_sem_periodo_para_atividades_de_hoje(self):
+        filtros = {"inicio": date(2026, 9, 1), "fim": date(2026, 11, 30), "disciplina": None}
+        filtro, parametros = dashboard_model.montar_filtro(1, "coordenador", filtros, com_periodo=False)
+        self.assertEqual((filtro, parametros), ("", ()))
+
+    def test_meses_do_grafico_com_periodo(self):
+        filtros = {"inicio": date(2026, 9, 15), "fim": date(2026, 11, 3)}
+        self.assertEqual(dashboard_model.meses_do_grafico(filtros), (date(2026, 9, 1), date(2026, 11, 1)))
+
+    def test_meses_do_grafico_virando_o_ano(self):
+        self.assertEqual(dashboard_model.somar_meses(date(2026, 11, 1), 3), date(2027, 2, 1))
+        self.assertEqual(dashboard_model.somar_meses(date(2026, 2, 1), -4), date(2025, 10, 1))
+
+    def test_meses_do_grafico_sem_filtro_mostra_6_meses(self):
+        primeiro, ultimo = dashboard_model.meses_do_grafico()
+        meses = (ultimo.year - primeiro.year) * 12 + ultimo.month - primeiro.month + 1
+        self.assertEqual(meses, 6)
+
+    def test_por_mes_usa_o_filtro_no_join(self):
+        banco, cursor = banco_falso(fetchall=[])
+        filtros = {"inicio": date(2026, 9, 1), "fim": date(2026, 11, 30), "disciplina": 2}
+        with patch.object(dashboard_model, "conectar", return_value=banco):
+            dashboard_model.buscar_atividades_por_mes(1, "coordenador", filtros)
+
+        sql, valores = cursor.execute.call_args[0]
+        self.assertIn("a.disciplina_id = %s", sql)
+        self.assertEqual(valores, (date(2026, 9, 1), date(2026, 11, 1), date(2026, 9, 1), date(2026, 11, 30), 2))
+
 class TestRecuperacaoModel(unittest.TestCase):
 
     def test_token_criado_nao_vai_puro_para_o_banco(self):

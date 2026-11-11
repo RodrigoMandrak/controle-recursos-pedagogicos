@@ -2,8 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { useState, useEffect } from "react";
 import Dashboard from "../components/Dashboard";
+import Recursos from "../components/Recursos";
 
-const API = "http://localhost:5000";
+// endereco do back-end. Rodando normal no PC: http://localhost:5000
+// No modo online (iniciar_online.bat) vira "/api", e o proprio front repassa para o back.
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 
 
@@ -316,6 +319,8 @@ const [novoRecurso, setNovoRecurso] = useState("");
 
 const [paginaAlocacoes, setPaginaAlocacoes] = useState(1);
 const [paginaAtividades, setPaginaAtividades] = useState(1);
+// aba aberta na tela logada: painel, nova, alocar, atividades ou recursos
+const [aba, setAba] = useState("painel");
 
 const itensPorPagina = 5;
 
@@ -1239,7 +1244,7 @@ const totalPaginasAtividades = Math.ceil(
 
                 <button
                   type="submit"
-                  className="w-full rounded-xl bg-green px-4 py-3 text-sm font-semibold text-white"
+                  className="w-full rounded-xl bg-[#4f7a63] px-4 py-3 text-sm font-semibold text-white"
                 >
                   Salvar nova senha
                 </button>
@@ -1304,7 +1309,7 @@ const totalPaginasAtividades = Math.ceil(
 
                 <button
                   type="submit"
-                  className="w-full rounded-xl bg-green px-4 py-3 text-sm font-semibold text-white"
+                  className="w-full rounded-xl bg-[#4f7a63] px-4 py-3 text-sm font-semibold text-white"
                 >
                   Enviar link de recuperacao
                 </button>
@@ -1326,15 +1331,52 @@ const totalPaginasAtividades = Math.ceil(
 
   if (!usuario) {
     return (
-      <main className="min-h-screen bg-paper font-sans text-ink antialiased">
-        <div className="mx-auto flex min-h-screen max-w-md items-center px-5 py-12">
+      <main className="min-h-screen bg-paper font-sans text-ink antialiased lg:grid lg:grid-cols-[1.1fr_1fr]">
+
+        {/* painel de apresentacao (so aparece em tela grande) */}
+        <aside className="hidden bg-[#2f4a3c] p-12 text-white lg:flex lg:flex-col lg:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="grid size-12 place-items-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+              <span className="font-hand text-3xl leading-none text-[#cfe3d6]">Ag</span>
+            </span>
+            <div>
+              <p className="text-lg font-bold leading-tight">Agenda Pedagógica</p>
+              <p className="text-sm text-white/70">Controle de recursos pedagógicos</p>
+            </div>
+          </div>
+
+          <div className="max-w-lg">
+            <p className="font-hand text-4xl leading-none text-[#cfe3d6]">o caderno da sala de aula</p>
+            <h2 className="mt-4 text-4xl font-bold leading-tight">
+              Salas, laboratórios e equipamentos organizados em um só lugar.
+            </h2>
+            <ul className="mt-8 space-y-4 text-base text-white/90">
+              <li className="flex gap-3">
+                <span className="mt-2 size-2 shrink-0 rounded-full bg-[#cfe3d6]" aria-hidden="true"></span>
+                Cada reserva ligada à atividade acadêmica em que o recurso vai ser usado.
+              </li>
+              <li className="flex gap-3">
+                <span className="mt-2 size-2 shrink-0 rounded-full bg-[#cfe3d6]" aria-hidden="true"></span>
+                O sistema bloqueia conflito de horário de recurso, professor e turma.
+              </li>
+              <li className="flex gap-3">
+                <span className="mt-2 size-2 shrink-0 rounded-full bg-[#cfe3d6]" aria-hidden="true"></span>
+                Dashboard com indicadores e filtros para a coordenação.
+              </li>
+            </ul>
+          </div>
+
+          <p className="text-sm text-white/60">UMC · Engenharia de Software · PFC 2026</p>
+        </aside>
+
+        <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-5 py-12">
           <div className="w-full">
-            <header className="mb-8 text-center">
-              <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-card ring-1 ring-line">
+            <header className="mb-8 text-center lg:text-left">
+              <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-card ring-1 ring-line lg:hidden">
                 <span className="font-hand text-3xl leading-none text-green">Ag</span>
               </span>
 
-              <h1 className="mt-4 text-2xl font-bold">Agenda Pedagógica</h1>
+              <h1 className="mt-4 text-2xl font-bold lg:mt-0 lg:text-3xl">Bem-vindo de volta</h1>
               <p className="mt-2 text-sm text-mute">
                 Entre com sua conta para acessar o sistema
               </p>
@@ -1351,7 +1393,7 @@ const totalPaginasAtividades = Math.ceil(
                     }}
                     className={`rounded-xl px-4 py-2 text-sm font-semibold ${
                       modoAcesso === "login"
-                        ? "bg-green text-white"
+                        ? "bg-[#4f7a63] text-white"
                         : "bg-paper text-ink ring-1 ring-line"
                     }`}
                   >
@@ -1366,7 +1408,7 @@ const totalPaginasAtividades = Math.ceil(
                     }}
                     className={`rounded-xl px-4 py-2 text-sm font-semibold ${
                       modoAcesso === "cadastro"
-                        ? "bg-green text-white"
+                        ? "bg-[#4f7a63] text-white"
                         : "bg-paper text-ink ring-1 ring-line"
                     }`}
                   >
@@ -1423,7 +1465,7 @@ const totalPaginasAtividades = Math.ceil(
 
                   <button
                     type="submit"
-                    className="w-full rounded-xl bg-green px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#5f8871]"
+                    className="w-full rounded-xl bg-[#4f7a63] px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#3f6550]"
                   >
                     Entrar
                   </button>
@@ -1576,7 +1618,7 @@ const totalPaginasAtividades = Math.ceil(
 
                   <button
                     type="submit"
-                    className="w-full rounded-xl bg-green px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#5f8871]"
+                    className="w-full rounded-xl bg-[#4f7a63] px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#3f6550]"
                   >
                     Criar conta
                   </button>
@@ -1619,54 +1661,56 @@ const totalPaginasAtividades = Math.ceil(
 
     <main className="min-h-screen bg-paper font-sans text-ink antialiased">
 
-      <div className="mx-auto max-w-2xl px-5 py-12 sm:py-16">
+      <div className="lg:flex">
 
-        <header className="mb-10 animate-[rise_.6s_cubic-bezier(.32,.72,0,1)_both]">
+        {/* menu lateral (no celular vira uma barra no topo) */}
+        <aside className="bg-[#2f4a3c] text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:shrink-0 lg:flex-col">
 
-          <div className="flex items-center gap-3">
-
-            <span className="grid size-11 place-items-center rounded-2xl bg-card ring-1 ring-line">
-
-              <span className="font-hand text-2xl leading-none text-green">Ag</span>
-
+          <div className="flex items-center gap-3 px-5 py-5">
+            <span className="grid size-11 place-items-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+              <span className="font-hand text-2xl leading-none text-[#cfe3d6]">Ag</span>
             </span>
-
             <div>
-
-              <h1 className="text-2xl font-bold leading-tight">
-
-                Agenda Pedagógica
-
-              </h1>
-
-              <p className="text-sm text-mute">
-
-                Controle de recursos · cadastro de atividades
-
-              </p>
-
+              <p className="text-base font-bold leading-tight">Agenda Pedagógica</p>
+              <p className="text-xs text-white/70">Controle de recursos</p>
             </div>
-
           </div>
 
-          <p className="mt-4 font-hand text-3xl leading-tight text-green">
+          <nav
+            aria-label="Seções da página"
+            className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:overflow-visible lg:pb-0"
+          >
+            {[
+              { id: "painel", nome: "Dashboard" },
+              { id: "nova", nome: "Nova atividade" },
+              { id: "alocar", nome: "Alocar recurso" },
+              { id: "atividades", nome: "Atividades cadastradas" },
+              ...(usuario.perfil === "coordenador" ? [{ id: "recursos", nome: "Recursos e estoque" }] : []),
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setAba(item.id)}
+                aria-current={aba === item.id ? "page" : undefined}
+                className={`shrink-0 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                  aba === item.id ? "bg-white text-[#2f4a3c]" : "text-white/90 hover:bg-white/10"
+                }`}
+              >
+                {item.nome}
+              </button>
+            ))}
+          </nav>
 
-            o caderno da sala de aula
+          <div className="border-t border-white/15 px-5 py-4 lg:mt-auto">
+            <p className="truncate text-sm font-semibold">{usuario.nome}</p>
+            <p className="text-xs capitalize text-white/70">{usuario.perfil}</p>
 
-          </p>
-
-          <div className="mt-5 flex items-center justify-between rounded-2xl bg-card px-4 py-3 ring-1 ring-line">
-            <div>
-              <p className="text-sm font-semibold">{usuario.nome}</p>
-              <p className="text-xs capitalize text-mute">{usuario.perfil}</p>
-            </div>
-
-            <div className="flex gap-2">
+            <div className="mt-3 flex flex-wrap gap-2 lg:flex-col">
               {usuario.perfil === "coordenador" && (
                 <button
                   type="button"
                   onClick={abrirLogs}
-                  className="rounded-lg bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line transition-colors hover:bg-card"
+                  className="rounded-lg bg-white/10 px-3 py-2 text-left text-sm font-semibold ring-1 ring-white/20 transition-colors hover:bg-white/20"
                 >
                   Logs de auditoria
                 </button>
@@ -1675,7 +1719,7 @@ const totalPaginasAtividades = Math.ceil(
               <button
                 type="button"
                 onClick={abrirMeusDados}
-                className="rounded-lg bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line transition-colors hover:bg-card"
+                className="rounded-lg bg-white/10 px-3 py-2 text-left text-sm font-semibold ring-1 ring-white/20 transition-colors hover:bg-white/20"
               >
                 Meus dados
               </button>
@@ -1683,25 +1727,48 @@ const totalPaginasAtividades = Math.ceil(
               <button
                 type="button"
                 onClick={fazerLogout}
-                className="rounded-lg bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line transition-colors hover:bg-card"
+                className="rounded-lg bg-white px-3 py-2 text-left text-sm font-semibold text-[#2f4a3c] transition-colors hover:bg-[#e8f0eb]"
               >
                 Sair
               </button>
             </div>
           </div>
 
+        </aside>
+
+        <div className="min-w-0 flex-1">
+
+      <div className="mx-auto max-w-6xl px-5 py-8 lg:px-10 lg:py-10">
+
+        <header className="mb-8 flex flex-wrap items-end justify-between gap-3 animate-[rise_.6s_cubic-bezier(.32,.72,0,1)_both]">
+          <div>
+            <p className="text-sm text-mute">
+              {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
+            </p>
+            <h1 className="text-3xl font-bold leading-tight">
+              Olá, {String(usuario.nome || "").split(" ")[0]}
+            </h1>
+          </div>
+          <p className="font-hand text-3xl leading-none text-green">o caderno da sala de aula</p>
         </header>
-        <Dashboard api={API} perfil={usuario.perfil} versao={`${activities.length}-${alocacoes.length}`} />
+
+        {/* cada aba fica escondida (hidden) quando nao esta aberta,
+            assim os formularios e o filtro nao perdem o que foi digitado */}
+        <div className={aba === "painel" ? "" : "hidden"}>
+          <Dashboard api={API} perfil={usuario.perfil} versao={`${activities.length}-${alocacoes.length}-${recursos.length}`} />
+        </div>
+
+        <div className={aba === "nova" ? "mx-auto max-w-3xl" : "hidden"}>
 
 
 
-        <section className="rounded-[28px] bg-card p-6 ring-1 ring-line [box-shadow:0_24px_50px_-30px_rgba(69,61,46,.45)] sm:p-8 animate-[rise_.6s_cubic-bezier(.32,.72,0,1)_120ms_both]">
+        <section id="nova-atividade" className="scroll-mt-6 rounded-[28px] bg-card p-6 ring-1 ring-line [box-shadow:0_24px_50px_-30px_rgba(69,61,46,.45)] sm:p-8 animate-[rise_.6s_cubic-bezier(.32,.72,0,1)_120ms_both]">
 
           <div className="mb-6 flex items-baseline justify-between border-b border-line pb-4">
 
             <h2 className="text-lg font-semibold">Nova atividade</h2>
 
-            <span className="font-hand text-2xl text-cream">página 01</span>
+            <span className="rounded-full bg-green/15 px-3 py-1 text-xs font-semibold text-[#4f7a63]">cadastro</span>
 
           </div>
 
@@ -1978,7 +2045,7 @@ const totalPaginasAtividades = Math.ceil(
 
                 type="submit"
 
-                className="group w-full rounded-xl bg-green px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#5f8871]"
+                className="group w-full rounded-xl bg-[#4f7a63] px-4 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#3f6550]"
 
               >
 
@@ -1998,11 +2065,14 @@ const totalPaginasAtividades = Math.ceil(
 
         </section>
 
-<section className="mt-10 rounded-[28px] bg-card p-6 ring-1 ring-line sm:p-8">
+</div>
+
+<div className={aba === "alocar" ? "mx-auto max-w-3xl" : "hidden"}>
+<section id="alocar-recurso" className="scroll-mt-6 rounded-[28px] bg-card p-6 ring-1 ring-line [box-shadow:0_24px_50px_-30px_rgba(69,61,46,.45)] sm:p-8">
 
 
 
-  <div className="mb-6">
+  <div className="mb-6 border-b border-line pb-4">
 
     <h2 className="text-lg font-semibold">Alocar recurso</h2>
 
@@ -2092,9 +2162,11 @@ const totalPaginasAtividades = Math.ceil(
 
         {recursos.map((recurso) => (
 
-          <option key={recurso.id} value={recurso.id}>
+          <option key={recurso.id} value={recurso.id} disabled={recurso.status === "manutencao"}>
 
             {recurso.nome} - {recurso.tipo}
+            {(recurso.quantidade ?? 1) > 1 ? ` (${recurso.quantidade} unidades)` : ""}
+            {recurso.status === "manutencao" ? " - em manutenção" : ""}
 
           </option>
 
@@ -2112,7 +2184,7 @@ const totalPaginasAtividades = Math.ceil(
 
       type="submit"
 
-      className="w-full rounded-xl bg-green px-4 py-3 text-sm font-semibold text-white"
+      className="w-full rounded-xl bg-[#4f7a63] px-4 py-3 text-sm font-semibold text-white"
 
     >
 
@@ -2199,8 +2271,11 @@ const totalPaginasAtividades = Math.ceil(
                 <option
                   key={recurso.id}
                   value={recurso.id}
+                  disabled={recurso.status === "manutencao"}
                 >
                   {recurso.nome} - {recurso.tipo}
+                  {(recurso.quantidade ?? 1) > 1 ? ` (${recurso.quantidade} unidades)` : ""}
+                  {recurso.status === "manutencao" ? " - em manutenção" : ""}
                 </option>
               ))}
             </select>
@@ -2271,7 +2346,10 @@ const totalPaginasAtividades = Math.ceil(
 
 </section>
 
-        <section className="mt-12">
+        </div>
+
+        <div className={aba === "atividades" ? "" : "hidden"}>
+        <section id="atividades">
 
           <div className="mb-5 flex items-baseline justify-between">
 
@@ -2283,7 +2361,7 @@ const totalPaginasAtividades = Math.ceil(
 
           </div>
 
-          <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
 
             {atividadesPagina.map((activity, index) => (
 
@@ -2359,7 +2437,13 @@ const totalPaginasAtividades = Math.ceil(
           )}
 
         </section>
+        </div>
 
+        {usuario.perfil === "coordenador" && (
+          <div className={aba === "recursos" ? "" : "hidden"}>
+            <Recursos api={API} recursos={recursos} aoAlterar={carregarRecursos} />
+          </div>
+        )}
 
         <footer className="mt-14 text-center">
 
@@ -2384,6 +2468,10 @@ const totalPaginasAtividades = Math.ceil(
           <p className="font-hand text-2xl text-mute">até a próxima aula</p>
 
         </footer>
+
+      </div>
+
+        </div>
 
       </div>
 

@@ -12,4 +12,20 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    server: {
+      // modo online (iniciar_online.bat): o navegador chama /api/... e o front
+      // repassa para o back-end em localhost:5000. Rodando normal, isso nao e usado.
+      proxy: {
+        "/api": {
+          // no servidor (Render) API_ORIGEM e o endereco do back-end hospedado
+          target: process.env.API_ORIGEM || "http://localhost:5000",
+          changeOrigin: true,
+          rewrite: (caminho) => caminho.replace(/^\/api/, ""),
+        },
+      },
+      // libera abrir o front pelo link do tunel (trycloudflare.com)
+      allowedHosts: true,
+    },
+  },
 });

@@ -5,10 +5,30 @@ def buscar_recursos():
     banco = conectar()
     cursor = banco.cursor()
 
+    # quantidade = quantas unidades o recurso tem (ex.: 3 notebooks)
+    # em_uso_agora = quantas unidades estao numa atividade acontecendo neste momento
     cursor.execute("""
-        SELECT id, nome, tipo, status
-        FROM recursos
-        ORDER BY nome
+        SELECT r.id, r.nome, r.tipo, r.status, r.quantidade,
+               (
+                   SELECT COUNT(*)
+                   FROM alocacoes al
+                   JOIN atividades a ON a.id = al.atividade_id
+                   WHERE al.recurso_id = r.id
+                   AND a.data = CURRENT_DATE
+                   AND CURRENT_TIME >= a.hora_inicio
+                   AND CURRENT_TIME < a.hora_fim
+               ) AS em_uso_agora,
+               (
+                   SELECT COUNT(*)
+                   FROM alocacoes al
+                   JOIN atividades a ON a.id = al.atividade_id
+                   WHERE al.recurso_id = r.id
+                   AND (a.data > CURRENT_DATE
+                        OR (a.data = CURRENT_DATE AND a.hora_fim > CURRENT_TIME))
+               ) AS reservas_futuras
+        FROM recursos r
+        WHERE r.ativo = TRUE
+        ORDER BY r.nome
     """)
 
     dados = cursor.fetchall()
@@ -19,7 +39,10 @@ def buscar_recursos():
             "id": recurso[0],
             "nome": recurso[1],
             "tipo": recurso[2],
-            "status": recurso[3]
+            "status": recurso[3],
+            "quantidade": recurso[4],
+            "em_uso_agora": recurso[5],
+            "reservas_futuras": recurso[6]
         })
 
     cursor.close()
@@ -36,6 +59,7 @@ def buscar_recurso(id_recurso):
         SELECT id
         FROM recursos
         WHERE id = %s
+        AND ativo = TRUE
     """, (id_recurso,))
 
     recurso = cursor.fetchone()
@@ -83,25 +107,43 @@ def buscar_usuario_atividade(id_atividade):
 
 
 def procurar_conflito_recurso(recurso, data, inicio, fim):
+    # o recurso tem um estoque (quantidade). Conta quantas unidades ja estao
+    # reservadas em atividades que batem com esse horario.
+    # Devolve (em_uso, quantidade, status) quando NAO pode alocar, ou None quando pode.
+    # Quando a aula termina, ela para de bater com os proximos horarios,
+    # entao a unidade volta a ficar livre sozinha.
     banco = conectar()
     cursor = banco.cursor()
 
     cursor.execute("""
-        SELECT al.id
-        FROM alocacoes al
-        JOIN atividades a ON a.id = al.atividade_id
-        WHERE al.recurso_id = %s
-        AND a.data = %s
-        AND %s < a.hora_fim
-        AND %s > a.hora_inicio
-    """, (recurso, data, inicio, fim))
+        SELECT r.quantidade, r.status,
+               (
+                   SELECT COUNT(*)
+                   FROM alocacoes al
+                   JOIN atividades a ON a.id = al.atividade_id
+                   WHERE al.recurso_id = r.id
+                   AND a.data = %s
+                   AND %s < a.hora_fim
+                   AND %s > a.hora_inicio
+               ) AS em_uso
+        FROM recursos r
+        WHERE r.id = %s
+    """, (data, inicio, fim, recurso))
 
-    conflito = cursor.fetchone()
+    linha = cursor.fetchone()
 
     cursor.close()
     banco.close()
 
-    return conflito
+    if not linha:
+        return None
+
+    quantidade, status, em_uso = linha[0] or 1, linha[1], linha[2]
+
+    if status == "manutencao" or em_uso >= quantidade:
+        return (em_uso, quantidade, status)
+
+    return None
 
 
 def procurar_conflito_professor(professor, atividade, data, inicio, fim):
@@ -150,9 +192,40 @@ def procurar_conflito_turma(turma, atividade, data, inicio, fim):
     return conflito
 
 
+def contar_uso_no_horario(cursor, atividade, recurso):
+    # conta as unidades do recurso ja reservadas no horario dessa atividade
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM alocacoes al
+        JOIN atividades a ON a.id = al.atividade_id
+        JOIN atividades nova ON nova.id = %s
+        WHERE al.recurso_id = %s
+        AND a.data = nova.data
+        AND nova.hora_inicio < a.hora_fim
+        AND nova.hora_fim > a.hora_inicio
+    """, (atividade, recurso))
+
+    linha = cursor.fetchone()
+    return linha[0] if linha else 0
+
+
 def salvar_alocacao(atividade, recurso):
+    # Trava o recurso (FOR UPDATE) e confere o estoque de novo na mesma transacao.
+    # Assim, se dois professores clicarem em "Alocar" no mesmo instante,
+    # o segundo espera o primeiro terminar e ve a unidade ja ocupada.
+    # Devolve True quando salvou e False quando o recurso acabou.
     banco = conectar()
     cursor = banco.cursor()
+
+    cursor.execute("SELECT quantidade FROM recursos WHERE id = %s FOR UPDATE", (recurso,))
+    linha = cursor.fetchone()
+    quantidade = linha[0] if linha and linha[0] else 1
+
+    if contar_uso_no_horario(cursor, atividade, recurso) >= quantidade:
+        banco.rollback()
+        cursor.close()
+        banco.close()
+        return False
 
     cursor.execute(
         "INSERT INTO alocacoes (atividade_id, recurso_id) VALUES (%s, %s)",
@@ -163,6 +236,8 @@ def salvar_alocacao(atividade, recurso):
 
     cursor.close()
     banco.close()
+
+    return True
 
 
 def buscar_alocacoes(usuario_id, perfil):
@@ -242,8 +317,22 @@ def buscar_alocacao(id_alocacao):
 
 
 def alterar_alocacao(id_alocacao, recurso):
+    # mesma trava do salvar_alocacao: confere o estoque do novo recurso na mesma transacao
     banco = conectar()
     cursor = banco.cursor()
+
+    cursor.execute("SELECT quantidade FROM recursos WHERE id = %s FOR UPDATE", (recurso,))
+    linha = cursor.fetchone()
+    quantidade = linha[0] if linha and linha[0] else 1
+
+    cursor.execute("SELECT atividade_id FROM alocacoes WHERE id = %s", (id_alocacao,))
+    linha = cursor.fetchone()
+
+    if linha and contar_uso_no_horario(cursor, linha[0], recurso) >= quantidade:
+        banco.rollback()
+        cursor.close()
+        banco.close()
+        return False
 
     cursor.execute("""
         UPDATE alocacoes
@@ -255,6 +344,8 @@ def alterar_alocacao(id_alocacao, recurso):
 
     cursor.close()
     banco.close()
+
+    return True
 
 
 def cancelar_alocacao(id_alocacao):
@@ -270,6 +361,17 @@ def cancelar_alocacao(id_alocacao):
 
     cursor.close()
     banco.close()
+
+
+def mensagem_recurso_indisponivel(conflito):
+    # conflito = (em_uso, quantidade, status)
+    if len(conflito) >= 3 and conflito[2] == "manutencao":
+        return "Esse recurso esta em manutencao e nao pode ser alocado"
+
+    if len(conflito) >= 2 and conflito[1] and conflito[1] > 1:
+        return f"Recurso indisponivel nesse horario: as {conflito[1]} unidades ja estao reservadas"
+
+    return "Esse recurso ja esta sendo usado nesse horario"
 
 
 def validar_conflitos(atividade_id, recurso_id):
@@ -296,7 +398,7 @@ def validar_conflitos(atividade_id, recurso_id):
 
     if conflito_recurso:
         print("conflito de recurso")
-        return "Esse recurso ja esta sendo usado nesse horario"
+        return mensagem_recurso_indisponivel(conflito_recurso)
 
     conflito_professor = procurar_conflito_professor(
         professor,
