@@ -158,3 +158,16 @@ def buscar_professores():
     banco.close()
 
     return lista
+
+def buscar_professor_do_usuario(usuario_id):
+    # id do professor (lista de professores) ligado a conta do usuario, ou None
+    banco = conectar()
+    cursor = banco.cursor()
+
+    cursor.execute("SELECT id FROM professores WHERE usuario_id = %s ORDER BY id LIMIT 1", (usuario_id,))
+    linha = cursor.fetchone()
+
+    cursor.close()
+    banco.close()
+
+    return linha[0] if linha else None

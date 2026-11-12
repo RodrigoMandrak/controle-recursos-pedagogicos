@@ -11,6 +11,7 @@ from controllers.recuperacao_controller import recuperacao_bp
 from controllers.log_controller import log_bp
 from controllers.dashboard_controller import dashboard_bp
 from controllers.recurso_controller import recurso_bp
+from controllers.solicitacao_controller import solicitacao_bp
 from banco import atualizar_estrutura
 
 load_dotenv()
@@ -40,6 +41,7 @@ app.register_blueprint(recuperacao_bp)
 app.register_blueprint(log_bp)
 app.register_blueprint(dashboard_bp)
 app.register_blueprint(recurso_bp)
+app.register_blueprint(solicitacao_bp)
 
 # confere se o banco tem as colunas novas (ex.: quantidade do recurso)
 try:

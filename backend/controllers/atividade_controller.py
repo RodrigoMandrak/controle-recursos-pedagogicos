@@ -5,6 +5,7 @@ from models.atividade_model import buscar_atividades
 from models.atividade_model import buscar_disciplinas
 from models.atividade_model import buscar_turmas
 from models.atividade_model import buscar_professores
+from models.atividade_model import buscar_professor_do_usuario
 from models.log_model import registrar_log
 
 from validacoes import converter_data
@@ -34,6 +35,12 @@ def cadastrar():
     data = dados.get("data")
     inicio = dados.get("hora_inicio")
     fim = dados.get("hora_fim")
+
+    # o professor so cadastra atividade no proprio nome
+    if session.get("perfil") != "coordenador":
+        meu_professor = buscar_professor_do_usuario(session["usuario_id"])
+        if meu_professor:
+            professor = meu_professor
 
     if not disciplina or not turma or not professor:
         return jsonify({
@@ -122,6 +129,15 @@ def listar_turmas():
     dados = buscar_turmas()
 
     return jsonify(dados)
+
+
+@atividade_bp.route("/meu-professor", methods=["GET"])
+def meu_professor():
+    # usado pela tela para ja deixar o professor logado selecionado
+    if "usuario_id" not in session:
+        return jsonify({"erro": "Voce precisa estar logado"}), 401
+
+    return jsonify({"professor_id": buscar_professor_do_usuario(session["usuario_id"])})
 
 
 @atividade_bp.route("/professores", methods=["GET"])

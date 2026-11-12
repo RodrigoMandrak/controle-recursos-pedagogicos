@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import Dashboard from "../components/Dashboard";
 import Recursos from "../components/Recursos";
+import Solicitacoes from "../components/Solicitacoes";
 
 // endereco do back-end. Rodando normal no PC: http://localhost:5000
 // No modo online (iniciar_online.bat) vira "/api", e o proprio front repassa para o back.
@@ -321,6 +322,8 @@ const [paginaAlocacoes, setPaginaAlocacoes] = useState(1);
 const [paginaAtividades, setPaginaAtividades] = useState(1);
 // aba aberta na tela logada: painel, nova, alocar, atividades ou recursos
 const [aba, setAba] = useState("painel");
+// id do professor ligado a conta logada (professor so cadastra no proprio nome)
+const [meuProfessorId, setMeuProfessorId] = useState(null);
 
 const itensPorPagina = 5;
 
@@ -653,7 +656,7 @@ async function fazerCadastro(e) {
       return;
     }
 
-    alert("Conta criada com sucesso! Agora faca seu login.");
+    alert("Cadastro enviado! Aguarde a aprovação da coordenação para entrar no sistema.");
 
     setLoginForm({
       email: cadastroForm.email,
@@ -808,6 +811,20 @@ useEffect(() => {
   carregarOpcoes();
   carregarRecursos();
   carregarAlocacoes();
+
+  // professor: ja deixa ele mesmo selecionado no formulario de atividade
+  setMeuProfessorId(null);
+  if (usuario.perfil !== "coordenador") {
+    fetch(`${API}/meu-professor`, { credentials: "include" })
+      .then((resposta) => (resposta.ok ? resposta.json() : {}))
+      .then((dados) => {
+        if (dados.professor_id) {
+          setMeuProfessorId(dados.professor_id);
+          setForm((atual) => ({ ...atual, professor: String(dados.professor_id) }));
+        }
+      })
+      .catch(() => {});
+  }
 }, [usuario]);
 
 
@@ -950,7 +967,7 @@ useEffect(() => {
 
       turma: "",
 
-      professor: "",
+      professor: meuProfessorId ? String(meuProfessorId) : "",
 
       data: "",
 
@@ -1685,7 +1702,12 @@ const totalPaginasAtividades = Math.ceil(
               { id: "nova", nome: "Nova atividade" },
               { id: "alocar", nome: "Alocar recurso" },
               { id: "atividades", nome: "Atividades cadastradas" },
-              ...(usuario.perfil === "coordenador" ? [{ id: "recursos", nome: "Recursos e estoque" }] : []),
+              ...(usuario.perfil === "coordenador"
+                ? [
+                    { id: "recursos", nome: "Recursos e estoque" },
+                    { id: "solicitacoes", nome: "Solicitações de cadastro" },
+                  ]
+                : []),
             ].map((item) => (
               <button
                 key={item.id}
@@ -1880,9 +1902,13 @@ const totalPaginasAtividades = Math.ceil(
 
                 onChange={handleChange}
 
+                disabled={Boolean(meuProfessorId)}
+
+                title={meuProfessorId ? "O professor cadastra atividades no próprio nome" : undefined}
+
                 required
 
-                className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green"
+                className="w-full rounded-xl bg-paper px-3.5 py-2.5 text-sm ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-green disabled:opacity-80"
 
               >
 
@@ -2442,6 +2468,12 @@ const totalPaginasAtividades = Math.ceil(
         {usuario.perfil === "coordenador" && (
           <div className={aba === "recursos" ? "" : "hidden"}>
             <Recursos api={API} recursos={recursos} aoAlterar={carregarRecursos} />
+          </div>
+        )}
+
+        {usuario.perfil === "coordenador" && (
+          <div className={aba === "solicitacoes" ? "mx-auto max-w-3xl" : "hidden"}>
+            <Solicitacoes api={API} aoAprovar={carregarOpcoes} aberta={aba === "solicitacoes"} />
           </div>
         )}
 

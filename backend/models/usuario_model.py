@@ -2,7 +2,9 @@ from banco import conectar
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
-def cadastrar_usuario(nome, email, senha, perfil, identificador=None, aceitou_termos=False):
+def cadastrar_usuario(nome, email, senha, perfil, identificador=None, aceitou_termos=False, status="ativo"):
+    # status: "pendente" = cadastro feito pela tela, esperando o coordenador aprovar
+    #         "ativo"    = pode entrar no sistema
     banco = conectar()
     cursor = banco.cursor()
 
@@ -17,10 +19,11 @@ def cadastrar_usuario(nome, email, senha, perfil, identificador=None, aceitou_te
             perfil,
             identificador_institucional,
             aceitou_termos,
-            data_aceite
+            data_aceite,
+            status
         )
         VALUES (%s, %s, %s, %s, %s, %s,
-        CASE WHEN %s = TRUE THEN CURRENT_TIMESTAMP ELSE NULL END)
+        CASE WHEN %s = TRUE THEN CURRENT_TIMESTAMP ELSE NULL END, %s)
     """, (
         nome,
         email,
@@ -28,7 +31,8 @@ def cadastrar_usuario(nome, email, senha, perfil, identificador=None, aceitou_te
         perfil,
         identificador,
         aceitou_termos,
-        aceitou_termos
+        aceitou_termos,
+        status
     ))
 
     banco.commit()
@@ -49,7 +53,8 @@ def buscar_usuario_email(email):
             senha_hash,
             perfil,
             identificador_institucional,
-            aceitou_termos
+            aceitou_termos,
+            status
         FROM usuarios
         WHERE email = %s
     """, (email,))
