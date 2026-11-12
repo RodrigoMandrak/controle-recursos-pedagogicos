@@ -35,6 +35,39 @@ def atualizar_estrutura():
         ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE
     """)
 
+    # aprovacao de cadastro: contas antigas continuam "ativo"
+    cursor.execute("""
+        ALTER TABLE usuarios
+        ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'ativo'
+    """)
+
+    # cada professor da lista pode estar ligado a uma conta de login
+    cursor.execute("""
+        ALTER TABLE professores
+        ADD COLUMN IF NOT EXISTS usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL
+    """)
+
+    # contas de professor ja aprovadas que ainda nao estao na lista:
+    # liga pelo mesmo nome, ou coloca na lista
+    cursor.execute("""
+        UPDATE professores p
+        SET usuario_id = u.id
+        FROM usuarios u
+        WHERE p.usuario_id IS NULL
+        AND LOWER(p.nome) = LOWER(u.nome)
+        AND u.perfil = 'professor'
+        AND u.status = 'ativo'
+        AND NOT EXISTS (SELECT 1 FROM professores p2 WHERE p2.usuario_id = u.id)
+    """)
+    cursor.execute("""
+        INSERT INTO professores (nome, usuario_id)
+        SELECT u.nome, u.id
+        FROM usuarios u
+        WHERE u.perfil = 'professor'
+        AND u.status = 'ativo'
+        AND NOT EXISTS (SELECT 1 FROM professores p WHERE p.usuario_id = u.id)
+    """)
+
     banco.commit()
     cursor.close()
     banco.close()

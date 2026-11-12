@@ -74,17 +74,19 @@ def cadastrar():
             "erro": "Esse email ja esta cadastrado"
         }), 400
 
+    # o cadastro fica pendente ate o coordenador aprovar (aba Solicitacoes)
     cadastrar_usuario(
         nome,
         email,
         senha,
         "professor",
         identificador,
-        True
+        True,
+        status="pendente"
     )
 
     return jsonify({
-        "mensagem": "Usuario cadastrado com sucesso"
+        "mensagem": "Cadastro enviado! Aguarde a aprovacao da coordenacao para entrar no sistema"
     })
 
 
@@ -113,6 +115,12 @@ def login():
         return jsonify({
             "erro": "Email ou senha incorretos"
         }), 401
+
+    # cadastro ainda nao aprovado pelo coordenador: nao entra
+    if len(usuario) > 7 and usuario[7] == "pendente":
+        return jsonify({
+            "erro": "Seu cadastro esta aguardando aprovacao da coordenacao"
+        }), 403
 
     session["usuario_id"] = usuario[0]
     session["nome"] = usuario[1]
