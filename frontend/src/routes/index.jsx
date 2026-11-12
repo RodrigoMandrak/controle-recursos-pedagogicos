@@ -9,6 +9,14 @@ import Solicitacoes from "../components/Solicitacoes";
 // No modo online (iniciar_online.bat) vira "/api", e o proprio front repassa para o back.
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+// "2026-11-11 23:04:40.826119" -> "11/11/2026 às 23:04"
+function formatarDataHora(texto) {
+  const partes = String(texto || "").match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if (!partes) return texto || "";
+  const [, ano, mes, dia, hora, minuto] = partes;
+  return `${dia}/${mes}/${ano} às ${hora}:${minuto}`;
+}
+
 
 
 export const Route = createFileRoute("/")({
@@ -2548,7 +2556,7 @@ const totalPaginasAtividades = Math.ceil(
                       <p className="font-semibold">{log.acao}</p>
 
                       <p className="text-xs text-mute">
-                        {log.data_hora}
+                        {formatarDataHora(log.data_hora)}
                       </p>
                     </div>
 
@@ -2625,7 +2633,7 @@ const totalPaginasAtividades = Math.ceil(
                       {meusDados.aceitou_termos ? "Aceito" : "Nao registrado"}
                     </p>
                     {meusDados.data_aceite && (
-                      <p className="mt-1 text-xs text-mute">{meusDados.data_aceite}</p>
+                      <p className="mt-1 text-xs text-mute">{formatarDataHora(meusDados.data_aceite)}</p>
                     )}
                   </div>
                 </div>
