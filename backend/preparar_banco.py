@@ -20,6 +20,11 @@ import sys
 from datetime import date, datetime, time, timedelta
 from getpass import getpass
 
+# horario do Brasil tambem no servidor (que roda em UTC)
+os.environ.setdefault("TZ", os.getenv("FUSO_HORARIO", "America/Sao_Paulo"))
+if hasattr(__import__("time"), "tzset"):
+    __import__("time").tzset()
+
 PASTA = os.path.dirname(os.path.abspath(__file__))
 ARQUIVO_ENV = os.path.join(PASTA, ".env")
 
@@ -124,7 +129,8 @@ def conectar_em(banco_nome):
     import psycopg2
     return psycopg2.connect(host=os.getenv("DB_HOST", "localhost"), port=os.getenv("DB_PORT", "5432"),
                             user=os.getenv("DB_USER", "postgres"), password=os.getenv("DB_PASSWORD"),
-                            database=banco_nome, sslmode=os.getenv("DB_SSLMODE", "prefer"))
+                            database=banco_nome, sslmode=os.getenv("DB_SSLMODE", "prefer"),
+                            options="-c timezone=" + os.getenv("FUSO_HORARIO", "America/Sao_Paulo"))
 
 
 def criar_banco():

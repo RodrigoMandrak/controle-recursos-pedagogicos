@@ -4,6 +4,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# fuso horario do sistema: o servidor na nuvem roda em UTC (3h a frente),
+# entao "hoje", "agora" e a hora dos logs passam a ser os do Brasil
+FUSO = os.getenv("FUSO_HORARIO", "America/Sao_Paulo")
+os.environ.setdefault("TZ", FUSO)
+try:
+    import time
+    time.tzset()
+except AttributeError:
+    # Windows nao tem tzset; no PC o relogio ja e o do Brasil
+    pass
+
+
 def conectar():
     return psycopg2.connect(
         host=os.getenv("DB_HOST"),
@@ -12,7 +24,9 @@ def conectar():
         password=os.getenv("DB_PASSWORD"),
         port=os.getenv("DB_PORT"),
         # banco na nuvem (Neon) exige conexao segura; no PC fica "prefer"
-        sslmode=os.getenv("DB_SSLMODE", "prefer")
+        sslmode=os.getenv("DB_SSLMODE", "prefer"),
+        # CURRENT_DATE, CURRENT_TIME e a data dos logs no horario do Brasil
+        options=f"-c timezone={FUSO}"
     )
 
 
