@@ -5,6 +5,10 @@ from models.usuario_model import buscar_usuario_email
 from models.usuario_model import buscar_usuario_id
 from models.usuario_model import conferir_senha
 from models.usuario_model import excluir_usuario
+from models.usuario_model import resumo_exclusao
+from models.usuario_model import minutos_bloqueado
+from models.usuario_model import registrar_senha_errada
+from models.usuario_model import zerar_tentativas
 
 from models.log_model import registrar_log
 
@@ -109,12 +113,32 @@ def login():
             "erro": "Email ou senha incorretos"
         }), 401
 
+    # muitas senhas erradas seguidas: espera alguns minutos
+    espera = minutos_bloqueado(usuario[0])
+
+    if espera:
+        return jsonify({
+            "erro": f"Muitas tentativas com senha errada. Tente de novo em {espera} minuto(s)"
+        }), 429
+
     senha_certa = conferir_senha(senha, usuario[3])
 
     if not senha_certa:
+        if registrar_senha_errada(usuario[0]):
+            registrar_log(
+                usuario[0],
+                "LOGIN_BLOQUEADO",
+                "Conta bloqueada por 5 minutos apos 5 senhas erradas"
+            )
+            return jsonify({
+                "erro": "Muitas tentativas com senha errada. Tente de novo em 5 minutos"
+            }), 429
+
         return jsonify({
             "erro": "Email ou senha incorretos"
         }), 401
+
+    zerar_tentativas(usuario[0])
 
     # cadastro ainda nao aprovado pelo coordenador: nao entra
     if len(usuario) > 7 and usuario[7] == "pendente":
@@ -131,8 +155,6 @@ def login():
         "LOGIN",
         "Usuario realizou login no sistema"
     )
-
-    print("usuario logado:", usuario[1], usuario[4])
 
     return jsonify({
         "mensagem": "Login realizado",
@@ -224,20 +246,30 @@ def excluir_minha_conta():
 
     usuario_id = usuario[0]
 
-    # registra a acao antes da exclusao
-    registrar_log(
-        usuario_id,
-        "EXCLUSAO_CONTA",
-        "Usuario solicitou a exclusao da propria conta"
-    )
+    canceladas = excluir_usuario(usuario_id)
 
-    excluir_usuario(usuario_id)
+    # o log fica sem o nome (a conta ja nao existe), so com o que aconteceu
+    registrar_log(
+        None,
+        "EXCLUSAO_CONTA",
+        f"Uma conta de {usuario[4]} foi excluida pelo proprio usuario; "
+        f"{canceladas or 0} atividade(s) futura(s) cancelada(s)"
+    )
 
     session.clear()
 
     return jsonify({
         "mensagem": "Conta excluida com sucesso"
     })
+
+
+@usuario_bp.route("/minha-conta/resumo-exclusao", methods=["GET"])
+def ver_resumo_exclusao():
+    # a tela avisa quantas aulas e reservas futuras serao canceladas
+    if "usuario_id" not in session:
+        return jsonify({"erro": "Voce precisa estar logado"}), 401
+
+    return jsonify(resumo_exclusao(session["usuario_id"]))
 
 
 @usuario_bp.route("/logout", methods=["POST"])

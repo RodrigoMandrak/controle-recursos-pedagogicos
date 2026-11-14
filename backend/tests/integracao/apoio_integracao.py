@@ -3,6 +3,7 @@ Helpers dos testes de integracao (equivalentes ao buildBookRequest/criarLivro da
 """
 
 import os
+from datetime import date, timedelta
 import uuid
 
 import psycopg2
@@ -59,7 +60,7 @@ CREATE TABLE atividades (
 
 CREATE TABLE alocacoes (
     id SERIAL PRIMARY KEY,
-    atividade_id INTEGER NOT NULL REFERENCES atividades(id),
+    atividade_id INTEGER NOT NULL REFERENCES atividades(id) ON DELETE CASCADE,
     recurso_id INTEGER NOT NULL REFERENCES recursos(id)
 );
 
@@ -148,6 +149,9 @@ def cadastrar_e_logar_professor(base_url):
     })
     assert cadastro.status_code == 200, cadastro.text
 
+    # o cadastro fica pendente ate a coordenacao aprovar; aqui o teste ja libera a conta
+    consultar("UPDATE usuarios SET status = 'ativo' WHERE email = %s", (email,))
+
     login = cliente.post(f"{base_url}/login", json={"email": email, "senha": senha})
     assert login.status_code == 200, login.text
 
@@ -175,8 +179,8 @@ def criar_e_logar_coordenador(base_url):
 def criar_cadastros_base():
     """
     Disciplina, turma, professor e dois recursos com nomes unicos.
-    Essas tabelas sao somente leitura na API (nao ha endpoint de cadastro),
-    por isso sao inseridas direto no banco de teste.
+    Sao inseridas direto no banco de teste para cada teste comecar
+    com dados conhecidos (a tela de Dados academicos tem seus proprios testes).
     """
     sufixo = unico()
 
@@ -204,13 +208,18 @@ def criar_cadastros_base():
     }
 
 
-def build_atividade_request(base, descricao, data="2026-11-10", inicio="08:00", fim="10:00"):
+def dia_futuro(deslocamento=0):
+    # data sempre no futuro (o sistema nao aceita atividade em data passada)
+    return (date.today() + timedelta(days=60 + deslocamento)).isoformat()
+
+
+def build_atividade_request(base, descricao, data=None, inicio="08:00", fim="10:00"):
     return {
         "disciplina_id": base["disciplina_id"],
         "turma_id": base["turma_id"],
         "professor_id": base["professor_id"],
         "descricao": descricao,
-        "data": data,
+        "data": data or dia_futuro(0),
         "hora_inicio": inicio,
         "hora_fim": fim,
     }

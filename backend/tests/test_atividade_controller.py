@@ -32,6 +32,8 @@ class TestCadastrarAtividade(unittest.TestCase):
         self.salvar = patch(CAMINHO + "salvar_atividade").start()
         self.log = patch(CAMINHO + "registrar_log").start()
         self.meu_professor = patch(CAMINHO + "buscar_professor_do_usuario", return_value=None).start()
+        self.ativos = patch(CAMINHO + "itens_ativos", return_value=True).start()
+        self.conflito = patch(CAMINHO + "procurar_conflito_atividade", return_value=None).start()
         self.addCleanup(patch.stopall)
         self.cliente = criar_cliente(atividade_bp, usuario_id=4)
 

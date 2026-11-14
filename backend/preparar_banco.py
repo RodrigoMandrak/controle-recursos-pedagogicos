@@ -62,6 +62,11 @@ ALTER TABLE recursos ADD COLUMN IF NOT EXISTS quantidade INTEGER NOT NULL DEFAUL
 ALTER TABLE recursos ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'ativo';
 ALTER TABLE professores ADD COLUMN IF NOT EXISTS usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL;
+ALTER TABLE disciplinas ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE turmas ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE professores ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS tentativas_login INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bloqueado_ate TIMESTAMP;
 CREATE TABLE IF NOT EXISTS atividades (
     id SERIAL PRIMARY KEY,
     disciplina_id INTEGER REFERENCES disciplinas(id),
@@ -235,7 +240,7 @@ def dados_demonstracao(cursor, banco):
         return None
 
     def ids(tabela):
-        cursor.execute(f"SELECT id FROM {tabela} ORDER BY id")
+        cursor.execute(f"SELECT id FROM {tabela} WHERE ativo = TRUE ORDER BY id")
         return [linha[0] for linha in cursor.fetchall()]
 
     disc, turm, prof = ids("disciplinas"), ids("turmas"), ids("professores")
@@ -300,6 +305,9 @@ def dados_demonstracao(cursor, banco):
     for dono, acao, detalhes, quando in logs:
         cursor.execute("INSERT INTO logs (usuario_id, acao, detalhes, data_hora) VALUES (%s, %s, %s, %s)",
                        (dono, acao, detalhes, quando))
+    # troca os numeros pelos nomes (mesmo texto que o sistema grava)
+    from banco import traduzir_logs_antigos
+    traduzir_logs_antigos(cursor)
     banco.commit()
     print(f"{len(atividades)} atividades de demonstracao (todas em datas que ja passaram) e "
           f"{len(logs)} registros de log cadastrados.")

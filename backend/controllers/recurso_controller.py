@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request, session
 
+from models.alocacao_model import nome_recurso
 from models.recurso_model import (
     buscar_recurso_por_nome,
     cadastrar_recurso,
@@ -99,7 +100,7 @@ def editar_recurso(id_recurso):
     registrar_log(
         session["usuario_id"],
         "ALTERACAO_RECURSO",
-        f"Recurso {id_recurso} alterado: {valores['nome']}, {valores['quantidade']} unidade(s), {status}"
+        f"Recurso {valores['nome']} alterado: {valores['quantidade']} unidade(s), {status}"
     )
 
     return jsonify({"mensagem": "Recurso atualizado com sucesso"})
@@ -120,6 +121,8 @@ def apagar_recurso(id_recurso):
                     "Cancele ou troque essas reservas na aba Alocar recurso antes de excluir"
         }), 400
 
+    nome = nome_recurso(id_recurso)
+
     # so tem aulas antigas: arquiva (some da lista, mas o historico continua)
     if not excluir_recurso(id_recurso, arquivar=antigas > 0):
         return jsonify({"erro": "Recurso nao encontrado"}), 404
@@ -127,7 +130,7 @@ def apagar_recurso(id_recurso):
     registrar_log(
         session["usuario_id"],
         "EXCLUSAO_RECURSO",
-        f"Recurso {id_recurso} excluido" + (" (arquivado, tinha aulas antigas)" if antigas else "")
+        f"Recurso {nome} excluido" + (" (arquivado, tinha aulas antigas)" if antigas else "")
     )
 
     return jsonify({"mensagem": "Recurso excluido com sucesso"})
