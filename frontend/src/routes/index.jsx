@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import Dashboard from "../components/Dashboard";
 import Recursos from "../components/Recursos";
 import Solicitacoes from "../components/Solicitacoes";
+import DadosAcademicos from "../components/DadosAcademicos";
+import EditarAtividade from "../components/EditarAtividade";
+import Avisos, { avisar, confirmar } from "../components/Avisos";
 
 // endereco do back-end. Rodando normal no PC: http://localhost:5000
 // No modo online (iniciar_online.bat) vira "/api", e o proprio front repassa para o back.
@@ -17,11 +20,63 @@ function formatarDataHora(texto) {
   return `${dia}/${mes}/${ano} às ${hora}:${minuto}`;
 }
 
+// "2026-09-22" -> "22/09/2026"
+function dataCurta(texto) {
+  const partes = String(texto || "").match(/(\d{4})-(\d{2})-(\d{2})/);
+  return partes ? `${partes[3]}/${partes[2]}/${partes[1]}` : texto || "";
+}
+
+// nome da atividade igual em todas as telas:
+// "Banco de Dados · 7A · 22/09/2026 · 08:00–10:00 · Prof. Ana"
+function rotuloAtividade(a) {
+  const inicio = String(a.horarioInicial ?? a.hora_inicio ?? "").slice(0, 5);
+  const fim = String(a.horarioFinal ?? a.hora_fim ?? "").slice(0, 5);
+  return [a.disciplina, a.turma, dataCurta(a.data), inicio && fim ? `${inicio}–${fim}` : "", a.professor]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+// nomes das acoes do log em portugues para o filtro e a lista
+const NOMES_ACOES = {
+  LOGIN: "Entrada no sistema",
+  LOGOUT: "Saída do sistema",
+  LOGIN_BLOQUEADO: "Login bloqueado (senha errada)",
+  CADASTRO_ATIVIDADE: "Atividade cadastrada",
+  ALTERACAO_ATIVIDADE: "Atividade alterada",
+  CANCELAMENTO_ATIVIDADE: "Atividade cancelada",
+  ALOCACAO_RECURSO: "Recurso alocado",
+  ALTERACAO_ALOCACAO: "Alocação alterada",
+  CANCELAMENTO_ALOCACAO: "Alocação cancelada",
+  CONFLITO_BLOQUEADO: "Conflito bloqueado",
+  CADASTRO_RECURSO: "Recurso cadastrado",
+  ALTERACAO_RECURSO: "Recurso alterado",
+  EXCLUSAO_RECURSO: "Recurso excluído",
+  CADASTRO_DISCIPLINA: "Disciplina cadastrada",
+  ALTERACAO_DISCIPLINA: "Disciplina renomeada",
+  EXCLUSAO_DISCIPLINA: "Disciplina excluída",
+  CADASTRO_TURMA: "Turma cadastrada",
+  ALTERACAO_TURMA: "Turma renomeada",
+  EXCLUSAO_TURMA: "Turma excluída",
+  CADASTRO_PROFESSOR: "Professor cadastrado",
+  ALTERACAO_PROFESSOR: "Professor renomeado",
+  EXCLUSAO_PROFESSOR: "Professor excluído",
+  APROVACAO_CADASTRO: "Cadastro aprovado",
+  RECUSA_CADASTRO: "Cadastro recusado",
+  EXCLUSAO_CONTA: "Conta excluída",
+  CONSULTA_FERIADO: "Consulta de feriado",
+  SOLICITACAO_RECUPERACAO_SENHA: "Pedido de nova senha",
+  REDEFINICAO_SENHA: "Senha redefinida",
+};
+
+const nomeDaAcao = (acao) => NOMES_ACOES[acao] || String(acao || "").replaceAll("_", " ").toLowerCase();
+
+const FILTRO_LOG_VAZIO = { acao: "", usuario: "", texto: "", data_inicio: "", data_fim: "" };
+
 
 
 export const Route = createFileRoute("/")({
 
-  component: Index,
+  component: Pagina,
 
   head: () => ({
 
@@ -262,6 +317,17 @@ function ModalDocumento({ tipo, fechar }) {
 
 
 
+// os avisos ficam fora das telas (login, cadastro, sistema),
+// assim um aviso continua aparecendo quando a tela troca
+function Pagina() {
+  return (
+    <>
+      <Index />
+      <Avisos />
+    </>
+  );
+}
+
 function Index() {
 
   const [usuario, setUsuario] = useState(null);
@@ -287,6 +353,13 @@ function Index() {
   const [logsAberto, setLogsAberto] = useState(false);
   const [logs, setLogs] = useState([]);
   const [carregandoLogs, setCarregandoLogs] = useState(false);
+  const [filtroLog, setFiltroLog] = useState(FILTRO_LOG_VAZIO);
+  const [acoesLog, setAcoesLog] = useState([]);
+  const [erroFiltroLog, setErroFiltroLog] = useState("");
+  // o back-end manda uma pagina por vez (20 registros), para a tela nao travar
+  const [paginaLog, setPaginaLog] = useState(1);
+  const [paginasLog, setPaginasLog] = useState(1);
+  const [totalLogs, setTotalLogs] = useState(0);
 
   const [recuperacaoEmail, setRecuperacaoEmail] = useState("");
   const [mensagemRecuperacao, setMensagemRecuperacao] = useState("");
@@ -332,6 +405,8 @@ const [paginaAtividades, setPaginaAtividades] = useState(1);
 const [aba, setAba] = useState("painel");
 // id do professor ligado a conta logada (professor so cadastra no proprio nome)
 const [meuProfessorId, setMeuProfessorId] = useState(null);
+// atividade aberta na janela de alteracao
+const [atividadeEditando, setAtividadeEditando] = useState(null);
 
 const itensPorPagina = 5;
 
@@ -384,6 +459,14 @@ async function carregarAtividades() {
       horarioInicial: item.hora_inicio,
 
       horarioFinal: item.hora_fim,
+
+      disciplinaId: item.disciplina_id,
+
+      turmaId: item.turma_id,
+
+      professorId: item.professor_id,
+
+      jaAconteceu: Boolean(item.ja_aconteceu),
 
     }));
 
@@ -605,7 +688,7 @@ async function redefinirSenha(e) {
       console.log("Erro ao encerrar sessao depois da redefinicao", erro);
     }
 
-    alert("Senha redefinida com sucesso! Entre com a nova senha.");
+    avisar("Senha redefinida com sucesso! Entre com a nova senha.");
 
     setUsuario(null);
     setNovaSenhaForm({ senha: "", confirmar_senha: "" });
@@ -664,7 +747,7 @@ async function fazerCadastro(e) {
       return;
     }
 
-    alert("Cadastro enviado! Aguarde a aprovação da coordenação para entrar no sistema.");
+    avisar("Cadastro enviado! Aguarde a aprovação da coordenação para entrar no sistema.");
 
     setLoginForm({
       email: cadastroForm.email,
@@ -687,30 +770,52 @@ async function fazerCadastro(e) {
   }
 }
 
-async function abrirLogs() {
-  setLogsAberto(true);
+async function carregarLogs(filtro = filtroLog, pagina = 1) {
   setCarregandoLogs(true);
+  setErroFiltroLog("");
+
+  // so manda os filtros preenchidos, mais a pagina
+  const parametros = new URLSearchParams([
+    ...Object.entries(filtro).filter(([, valor]) => String(valor).trim() !== ""),
+    ["pagina", String(pagina)],
+  ]).toString();
 
   try {
-    const resposta = await fetch(`${API}/logs`, {
+    const resposta = await fetch(`${API}/logs${parametros ? `?${parametros}` : ""}`, {
       credentials: "include",
     });
 
     const resultado = await resposta.json();
 
     if (!resposta.ok) {
-      alert(resultado.erro || "Nao foi possivel carregar os logs");
-      setLogsAberto(false);
+      setErroFiltroLog(resultado.erro || "Nao foi possivel carregar os logs");
       return;
     }
 
-    setLogs(resultado);
+    setLogs(resultado.logs || []);
+    setTotalLogs(resultado.total || 0);
+    setPaginaLog(resultado.pagina || 1);
+    setPaginasLog(resultado.paginas || 1);
+    // pagina nova comeca do topo da janela
+    document.getElementById("janela-logs")?.scrollTo({ top: 0 });
   } catch (erro) {
     console.log("Erro ao carregar logs", erro);
-    alert("Erro ao conectar com o servidor");
-    setLogsAberto(false);
+    setErroFiltroLog("Erro ao conectar com o servidor");
   } finally {
     setCarregandoLogs(false);
+  }
+}
+
+async function abrirLogs() {
+  setLogsAberto(true);
+  setFiltroLog(FILTRO_LOG_VAZIO);
+  carregarLogs(FILTRO_LOG_VAZIO, 1);
+
+  try {
+    const resposta = await fetch(`${API}/logs/acoes`, { credentials: "include" });
+    if (resposta.ok) setAcoesLog(await resposta.json());
+  } catch (erro) {
+    console.log("Erro ao carregar tipos de acao", erro);
   }
 }
 
@@ -744,7 +849,7 @@ async function abrirMeusDados() {
     const resultado = await resposta.json();
 
     if (!resposta.ok) {
-      alert(resultado.erro || "Nao foi possivel carregar seus dados");
+      avisar.erro(resultado.erro || "Nao foi possivel carregar seus dados");
       setMeusDadosAberto(false);
       return;
     }
@@ -752,7 +857,7 @@ async function abrirMeusDados() {
     setMeusDados(resultado);
   } catch (erro) {
     console.log("Erro ao carregar meus dados", erro);
-    alert("Erro ao conectar com o servidor");
+    avisar.erro("Erro ao conectar com o servidor");
     setMeusDadosAberto(false);
   } finally {
     setCarregandoDados(false);
@@ -767,9 +872,30 @@ async function excluirMinhaConta() {
     return;
   }
 
-  const confirmou = window.confirm(
-    "Tem certeza que deseja excluir sua conta? Essa acao nao pode ser desfeita."
-  );
+  // avisa antes quantas aulas e reservas futuras vao ser canceladas
+  let aviso = "";
+  try {
+    const resumo = await fetch(`${API}/minha-conta/resumo-exclusao`, { credentials: "include" });
+    if (resumo.ok) {
+      const { atividades_futuras: atividades = 0, reservas_futuras: reservas = 0 } = await resumo.json();
+      if (atividades > 0) {
+        aviso =
+          `\n\nVocê tem ${atividades} atividade(s) marcada(s) para os próximos dias` +
+          (reservas > 0 ? `, com ${reservas} recurso(s) reservado(s)` : "") +
+          ". Elas serão canceladas e os recursos ficarão livres para outros professores.";
+      }
+    }
+  } catch (erro) {
+    console.log("Nao foi possivel conferir as atividades futuras", erro);
+  }
+
+  const confirmou = await confirmar({
+    titulo: "Excluir sua conta?",
+    texto:
+      "Essa ação não pode ser desfeita. Seu nome sai das atividades antigas e da lista de professores." + aviso,
+    botao: "Excluir minha conta",
+    perigo: true,
+  });
 
   if (!confirmou) {
     return;
@@ -792,7 +918,7 @@ async function excluirMinhaConta() {
       return;
     }
 
-    alert("Conta excluida com sucesso");
+    avisar("Conta excluída com sucesso");
     setMeusDadosAberto(false);
     setMeusDados(null);
     setSenhaExclusao("");
@@ -956,7 +1082,7 @@ useEffect(() => {
 
     if (!resposta.ok) {
 
-      alert(resultado.erro);
+      avisar.erro(resultado.erro);
 
       return;
 
@@ -964,7 +1090,7 @@ useEffect(() => {
 
 
 
-    alert("Atividade cadastrada com sucesso!");
+    avisar("Atividade cadastrada com sucesso!");
 
     await carregarAtividades();
     setPaginaAtividades(1);
@@ -993,7 +1119,7 @@ useEffect(() => {
 
   } catch (erro) {
 
-    alert("Erro ao conectar com o servidor");
+    avisar.erro("Erro ao conectar com o servidor");
 
     console.log(erro);
 
@@ -1009,7 +1135,7 @@ async function salvarAlocacao(e) {
 
  if (!atividadeEscolhida || !recursoEscolhido) {
 
-   alert("Escolha uma atividade e um recurso");
+   avisar.erro("Escolha uma atividade e um recurso");
 
    return;
 
@@ -1053,7 +1179,7 @@ async function salvarAlocacao(e) {
 
    if (!resposta.ok) {
 
-     alert(resultado.erro);
+     avisar.erro(resultado.erro);
 
      return;
 
@@ -1061,7 +1187,7 @@ async function salvarAlocacao(e) {
 
 
 
-   alert("Recurso alocado com sucesso!");
+   avisar("Recurso alocado com sucesso!");
 
 
 
@@ -1071,12 +1197,13 @@ async function salvarAlocacao(e) {
 
    setPaginaAlocacoes(1);
    carregarAlocacoes();
+   carregarRecursos();
 
 
 
  } catch (erro) {
 
-   alert("Erro ao fazer a alocacao");
+   avisar.erro("Erro ao conectar com o servidor");
 
    console.log(erro);
 
@@ -1087,11 +1214,15 @@ async function salvarAlocacao(e) {
 
 async function cancelarAlocacao(id) {
 
-  const confirmar = window.confirm(
-    "Deseja realmente cancelar essa alocacao?"
-  );
+  const certo = await confirmar({
+    titulo: "Cancelar alocação?",
+    texto: "O recurso fica livre de novo nesse horário. A atividade continua marcada.",
+    botao: "Cancelar alocação",
+    voltar: "Manter",
+    perigo: true,
+  });
 
-  if (!confirmar) {
+  if (!certo) {
     return;
   }
 
@@ -1108,18 +1239,19 @@ async function cancelarAlocacao(id) {
     const resultado = await resposta.json();
 
     if (!resposta.ok) {
-      alert(resultado.erro);
+      avisar.erro(resultado.erro);
       return;
     }
 
-    alert("Alocacao cancelada");
+    avisar("Alocação cancelada");
 
     setPaginaAlocacoes(1);
     carregarAlocacoes();
+    carregarRecursos();
 
   } catch (erro) {
 
-    alert("Erro ao cancelar alocacao");
+    avisar.erro("Erro ao conectar com o servidor");
     console.log(erro);
 
   }
@@ -1129,7 +1261,7 @@ async function cancelarAlocacao(id) {
 async function alterarAlocacao(id) {
 
   if (!novoRecurso) {
-    alert("Escolha um novo recurso");
+    avisar.erro("Escolha um novo recurso");
     return;
   }
 
@@ -1154,11 +1286,11 @@ async function alterarAlocacao(id) {
     const resultado = await resposta.json();
 
     if (!resposta.ok) {
-      alert(resultado.erro);
+      avisar.erro(resultado.erro);
       return;
     }
 
-    alert("Alocacao alterada");
+    avisar("Alocação alterada");
 
     setEditandoAlocacao(null);
     setNovoRecurso("");
@@ -1167,12 +1299,58 @@ async function alterarAlocacao(id) {
 
   } catch (erro) {
 
-    alert("Erro ao alterar alocacao");
+    avisar.erro("Erro ao conectar com o servidor");
     console.log(erro);
 
   }
 }
 
+
+async function cancelarAtividade(atividade) {
+
+  const certo = await confirmar({
+    titulo: "Cancelar atividade?",
+    texto: `${rotuloAtividade(atividade)}\n\nA atividade sai da agenda e os recursos reservados para ela ficam livres.`,
+    botao: "Cancelar atividade",
+    voltar: "Manter",
+    perigo: true,
+  });
+
+  if (!certo) {
+    return;
+  }
+
+  try {
+    const resposta = await fetch(`${API}/atividades/${atividade.id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    const resultado = await resposta.json();
+
+    if (!resposta.ok) {
+      avisar.erro(resultado.erro);
+      return;
+    }
+
+    avisar(resultado.mensagem || "Atividade cancelada");
+    atualizarAgenda();
+
+  } catch (erro) {
+    avisar.erro("Erro ao conectar com o servidor");
+    console.log(erro);
+  }
+}
+
+// depois de alterar ou cancelar uma atividade, tudo que depende dela e recarregado
+function atualizarAgenda() {
+  carregarAtividades();
+  carregarAlocacoes();
+  carregarRecursos();
+}
+
+// so da para alocar recurso em atividade que ainda vai acontecer
+const atividadesFuturas = activities.filter((atividade) => !atividade.jaAconteceu);
 
 const inicioAlocacoes = (paginaAlocacoes - 1) * itensPorPagina;
 const fimAlocacoes = inicioAlocacoes + itensPorPagina;
@@ -1713,6 +1891,7 @@ const totalPaginasAtividades = Math.ceil(
               ...(usuario.perfil === "coordenador"
                 ? [
                     { id: "recursos", nome: "Recursos e estoque" },
+                    { id: "academico", nome: "Dados acadêmicos" },
                     { id: "solicitacoes", nome: "Solicitações de cadastro" },
                   ]
                 : []),
@@ -2146,15 +2325,17 @@ const totalPaginasAtividades = Math.ceil(
 
       >
 
-        <option value="">Selecione uma atividade</option>
+        <option value="">
+          {atividadesFuturas.length ? "Selecione uma atividade" : "Nenhuma atividade futura cadastrada"}
+        </option>
 
 
 
-        {activities.map((atividade) => (
+        {atividadesFuturas.map((atividade) => (
 
           <option key={atividade.id} value={atividade.id}>
 
-            {atividade.disciplina} - {atividade.turma} - {atividade.data}
+            {rotuloAtividade(atividade)}
 
           </option>
 
@@ -2247,18 +2428,11 @@ const totalPaginasAtividades = Math.ceil(
         key={item.id}
         className="mb-3 rounded-xl bg-paper p-4 ring-1 ring-line"
       >
-        <strong>{item.disciplina} - {item.turma}</strong>
-
-        <p className="text-sm text-mute">
-          {item.professor}
-        </p>
+        <strong>{item.recurso}</strong>
+        <span className="ml-2 text-xs text-mute">({item.tipo})</span>
 
         <p className="mt-1 text-sm">
-          Recurso: {item.recurso} ({item.tipo})
-        </p>
-
-        <p className="text-sm">
-          {item.data} · {item.hora_inicio} até {item.hora_fim}
+          {rotuloAtividade(item)}
         </p>
 
         <div className="mt-4 flex gap-2">
@@ -2415,7 +2589,7 @@ const totalPaginasAtividades = Math.ceil(
 
                     <p className="mt-0.5 text-sm text-mute">
                       {activity.professor} · {formatDate(activity.data)} ·{" "}
-                      {activity.horarioInicial} – {activity.horarioFinal}
+                      {String(activity.horarioInicial).slice(0, 5)} – {String(activity.horarioFinal).slice(0, 5)}
                     </p>
 
                   </div>
@@ -2433,6 +2607,27 @@ const totalPaginasAtividades = Math.ceil(
                 <p className="mt-3 text-sm leading-relaxed text-ink/80">
                   {activity.descricao}
                 </p>
+
+                {activity.jaAconteceu ? (
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-mute">Já aconteceu</p>
+                ) : (
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAtividadeEditando(activity)}
+                      className="rounded-lg bg-green px-3 py-2 text-sm font-semibold text-white"
+                    >
+                      Alterar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => cancelarAtividade(activity)}
+                      className="rounded-lg bg-paper px-3 py-2 text-sm font-semibold ring-1 ring-line"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
 
               </article>
 
@@ -2480,6 +2675,18 @@ const totalPaginasAtividades = Math.ceil(
         )}
 
         {usuario.perfil === "coordenador" && (
+          <div className={aba === "academico" ? "" : "hidden"}>
+            <DadosAcademicos
+              api={API}
+              disciplinas={disciplinas}
+              turmas={turmas}
+              professores={professores}
+              aoAlterar={carregarOpcoes}
+            />
+          </div>
+        )}
+
+        {usuario.perfil === "coordenador" && (
           <div className={aba === "solicitacoes" ? "mx-auto max-w-3xl" : "hidden"}>
             <Solicitacoes api={API} aoAprovar={carregarOpcoes} aberta={aba === "solicitacoes"} />
           </div>
@@ -2520,9 +2727,22 @@ const totalPaginasAtividades = Math.ceil(
         fechar={() => setDocumentoAberto(null)}
       />
 
+      {atividadeEditando && (
+        <EditarAtividade
+          api={API}
+          atividade={atividadeEditando}
+          disciplinas={disciplinas}
+          turmas={turmas}
+          professores={professores}
+          souCoordenador={usuario.perfil === "coordenador"}
+          fechar={() => setAtividadeEditando(null)}
+          aoSalvar={atualizarAgenda}
+        />
+      )}
+
       {logsAberto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
-          <div className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-[28px] bg-card p-6 ring-1 ring-line sm:p-8">
+          <div id="janela-logs" className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-[28px] bg-card p-6 ring-1 ring-line sm:p-8">
 
             <div className="mb-5 flex items-start justify-between gap-4 border-b border-line pb-4">
               <div>
@@ -2541,7 +2761,105 @@ const totalPaginasAtividades = Math.ceil(
               </button>
             </div>
 
-            {carregandoLogs ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                carregarLogs(filtroLog, 1);
+              }}
+              className="mb-5 grid gap-3 rounded-2xl bg-paper p-4 ring-1 ring-line sm:grid-cols-2 lg:grid-cols-3"
+            >
+              <label className="text-xs font-semibold uppercase tracking-wide text-mute">
+                Ação
+                <select
+                  value={filtroLog.acao}
+                  onChange={(e) => setFiltroLog({ ...filtroLog, acao: e.target.value })}
+                  className="mt-1 w-full rounded-xl bg-card px-3 py-2 text-sm font-normal normal-case tracking-normal text-ink ring-1 ring-line"
+                >
+                  <option value="">Todas</option>
+                  {acoesLog.map((acao) => (
+                    <option key={acao} value={acao}>
+                      {nomeDaAcao(acao)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="text-xs font-semibold uppercase tracking-wide text-mute">
+                Quem fez
+                <input
+                  value={filtroLog.usuario}
+                  onChange={(e) => setFiltroLog({ ...filtroLog, usuario: e.target.value })}
+                  placeholder="Nome"
+                  maxLength={100}
+                  className="mt-1 w-full rounded-xl bg-card px-3 py-2 text-sm font-normal normal-case tracking-normal text-ink ring-1 ring-line"
+                />
+              </label>
+
+              <label className="text-xs font-semibold uppercase tracking-wide text-mute">
+                Texto nos detalhes
+                <input
+                  value={filtroLog.texto}
+                  onChange={(e) => setFiltroLog({ ...filtroLog, texto: e.target.value })}
+                  placeholder="Ex.: Projetor"
+                  maxLength={100}
+                  className="mt-1 w-full rounded-xl bg-card px-3 py-2 text-sm font-normal normal-case tracking-normal text-ink ring-1 ring-line"
+                />
+              </label>
+
+              <label className="text-xs font-semibold uppercase tracking-wide text-mute">
+                De
+                <input
+                  type="date"
+                  value={filtroLog.data_inicio}
+                  onChange={(e) => setFiltroLog({ ...filtroLog, data_inicio: e.target.value })}
+                  className="mt-1 w-full rounded-xl bg-card px-3 py-2 text-sm font-normal normal-case tracking-normal text-ink ring-1 ring-line"
+                />
+              </label>
+
+              <label className="text-xs font-semibold uppercase tracking-wide text-mute">
+                Até
+                <input
+                  type="date"
+                  value={filtroLog.data_fim}
+                  onChange={(e) => setFiltroLog({ ...filtroLog, data_fim: e.target.value })}
+                  className="mt-1 w-full rounded-xl bg-card px-3 py-2 text-sm font-normal normal-case tracking-normal text-ink ring-1 ring-line"
+                />
+              </label>
+
+              <div className="flex items-end gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 rounded-xl bg-[#4f7a63] px-3 py-2 text-sm font-semibold text-white"
+                >
+                  Filtrar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFiltroLog(FILTRO_LOG_VAZIO);
+                    carregarLogs(FILTRO_LOG_VAZIO, 1);
+                  }}
+                  className="flex-1 rounded-xl bg-card px-3 py-2 text-sm font-semibold ring-1 ring-line"
+                >
+                  Limpar
+                </button>
+              </div>
+            </form>
+
+            {erroFiltroLog && (
+              <p role="alert" className="mb-4 rounded-xl bg-paper px-3 py-2 text-sm font-semibold text-[#8f3f2c] ring-1 ring-line">
+                {erroFiltroLog}
+              </p>
+            )}
+
+            {logs.length > 0 && (
+              <p className="mb-3 text-xs text-mute">
+                {totalLogs} registro{totalLogs !== 1 ? "s" : ""}
+                {paginasLog > 1 ? ` · página ${paginaLog} de ${paginasLog}` : ""}
+              </p>
+            )}
+
+            {carregandoLogs && logs.length === 0 ? (
               <p className="text-sm text-mute">Carregando logs...</p>
             ) : logs.length === 0 ? (
               <p className="text-sm text-mute">Nenhum log encontrado.</p>
@@ -2550,27 +2868,52 @@ const totalPaginasAtividades = Math.ceil(
                 {logs.map((log) => (
                   <div
                     key={log.id}
-                    className="rounded-xl bg-paper p-4 ring-1 ring-line"
+                    className="rounded-xl bg-paper px-4 py-2.5 ring-1 ring-line"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-semibold">{log.acao}</p>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                      <p className={`text-sm font-semibold ${log.acao === "CONFLITO_BLOQUEADO" || log.acao === "LOGIN_BLOQUEADO" ? "text-[#8f3f2c]" : ""}`}>
+                        {nomeDaAcao(log.acao)}
+                        <span className="ml-2 font-normal text-mute">· {log.usuario || "Conta removida"}</span>
+                      </p>
 
                       <p className="text-xs text-mute">
                         {formatarDataHora(log.data_hora)}
                       </p>
                     </div>
 
-                    <p className="mt-2 text-sm">
-                      Usuario: {log.usuario || "Usuario removido"}
-                    </p>
-
                     {log.detalhes && (
-                      <p className="mt-1 text-sm text-mute">
+                      <p className="mt-0.5 text-sm text-mute">
                         {log.detalhes}
                       </p>
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {paginasLog > 1 && (
+              <div className="mt-5 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  disabled={paginaLog === 1 || carregandoLogs}
+                  onClick={() => carregarLogs(filtroLog, paginaLog - 1)}
+                  className="rounded-lg bg-paper px-3 py-2 text-sm ring-1 ring-line disabled:opacity-40"
+                >
+                  Anterior
+                </button>
+
+                <span className="text-sm text-mute">
+                  Página {paginaLog} de {paginasLog}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={paginaLog === paginasLog || carregandoLogs}
+                  onClick={() => carregarLogs(filtroLog, paginaLog + 1)}
+                  className="rounded-lg bg-paper px-3 py-2 text-sm ring-1 ring-line disabled:opacity-40"
+                >
+                  Próxima
+                </button>
               </div>
             )}
 
@@ -2641,9 +2984,10 @@ const totalPaginasAtividades = Math.ceil(
                 <div className="rounded-xl bg-paper p-4 text-sm leading-relaxed ring-1 ring-line">
                   <p className="font-semibold">Privacidade</p>
                   <p className="mt-1 text-mute">
-                    Voce pode consultar estes dados sempre que precisar. Ao excluir a conta,
-                    o vinculo da conta com atividades anteriores e removido. Registros de auditoria
-                    podem ser preservados sem o vinculo direto com a conta.
+                    Você pode consultar estes dados sempre que precisar. Ao excluir a conta, seu nome
+                    sai das atividades anteriores e da lista de professores, e as atividades que ainda
+                    iam acontecer são canceladas. Registros de auditoria são preservados sem o vínculo
+                    com a conta.
                   </p>
                 </div>
 

@@ -9,10 +9,21 @@ from models.alocacao_model import cancelar_alocacao
 from models.alocacao_model import validar_conflitos
 from models.alocacao_model import buscar_usuario_atividade
 from models.alocacao_model import buscar_recurso
+from models.alocacao_model import nome_recurso
+from models.atividade_model import descrever_atividade
 from models.log_model import registrar_log
 
 
 alocacao_bp = Blueprint("alocacoes", __name__)
+
+
+def registrar_conflito(atividade, recurso, motivo):
+    # tentativa bloqueada tambem fica no log, para a coordenacao ver a procura pelos recursos
+    registrar_log(
+        session["usuario_id"],
+        "CONFLITO_BLOQUEADO",
+        f"{nome_recurso(recurso)} em {descrever_atividade(atividade)}: {motivo}"
+    )
 
 
 def converter_id(valor):
@@ -81,11 +92,10 @@ def alocar_recurso():
             "erro": "Recurso nao encontrado"
         }), 404
 
-    print("tentando alocar:", atividade, recurso)
-
     erro = validar_conflitos(atividade, recurso)
 
     if erro:
+        registrar_conflito(atividade, recurso, erro)
         return jsonify({
             "erro": erro
         }), 400
@@ -93,6 +103,7 @@ def alocar_recurso():
     # o salvar confere o estoque de novo, travando o recurso,
     # para o caso de duas pessoas alocarem no mesmo instante
     if salvar_alocacao(atividade, recurso) is False:
+        registrar_conflito(atividade, recurso, "reservado por outra pessoa no mesmo instante")
         return jsonify({
             "erro": "Esse recurso acabou de ser reservado nesse horario. Escolha outro recurso"
         }), 400
@@ -100,10 +111,8 @@ def alocar_recurso():
     registrar_log(
         session["usuario_id"],
         "ALOCACAO_RECURSO",
-        f"Recurso {recurso} alocado na atividade {atividade}"
+        f"{nome_recurso(recurso)} reservado para {descrever_atividade(atividade)}"
     )
-
-    print("alocacao salva")
 
     return jsonify({
         "mensagem": "Recurso alocado"
@@ -180,11 +189,13 @@ def editar_alocacao(id_alocacao):
     erro = validar_conflitos(atividade, recurso)
 
     if erro:
+        registrar_conflito(atividade, recurso, erro)
         return jsonify({
             "erro": erro
         }), 400
 
     if alterar_alocacao(id_alocacao, recurso) is False:
+        registrar_conflito(atividade, recurso, "reservado por outra pessoa no mesmo instante")
         return jsonify({
             "erro": "Esse recurso acabou de ser reservado nesse horario. Escolha outro recurso"
         }), 400
@@ -192,7 +203,8 @@ def editar_alocacao(id_alocacao):
     registrar_log(
         session["usuario_id"],
         "ALTERACAO_ALOCACAO",
-        f"Alocacao {id_alocacao} alterada do recurso {recurso_atual} para {recurso}"
+        f"Recurso trocado de {nome_recurso(recurso_atual)} para {nome_recurso(recurso)} "
+        f"em {descrever_atividade(atividade)}"
     )
 
     return jsonify({
@@ -230,7 +242,7 @@ def excluir_alocacao(id_alocacao):
     registrar_log(
         session["usuario_id"],
         "CANCELAMENTO_ALOCACAO",
-        f"Alocacao {id_alocacao} da atividade {atividade} e recurso {recurso} foi cancelada"
+        f"Reserva de {nome_recurso(recurso)} cancelada em {descrever_atividade(atividade)}"
     )
 
     return jsonify({

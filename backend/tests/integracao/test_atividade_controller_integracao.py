@@ -7,6 +7,7 @@ Fluxo real exercitado em cada teste:
 """
 
 from apoio_integracao import (
+    dia_futuro,
     build_atividade_request,
     consultar,
     criar_atividade,
@@ -22,7 +23,7 @@ def test_cadastrar_comDadosValidos_deveRetornar200EGravarNoBanco(base_url, profe
     cliente, usuario = professor
     base = criar_cadastros_base()
     descricao = f"Aula pratica {unico()}"
-    request = build_atividade_request(base, descricao, data="2026-11-12", inicio="08:00", fim="09:40")
+    request = build_atividade_request(base, descricao, data=dia_futuro(2), inicio="08:00", fim="09:40")
 
     # Act
     resposta = cliente.post(f"{base_url}/atividades", json=request)
@@ -39,7 +40,7 @@ def test_cadastrar_comDadosValidos_deveRetornar200EGravarNoBanco(base_url, profe
     )
     assert linhas == [(
         base["disciplina_id"], base["turma_id"], base["professor_id"],
-        "2026-11-12", "08:00:00", "09:40:00", usuario["id"],
+        dia_futuro(2), "08:00:00", "09:40:00", usuario["id"],
     )]
 
 
@@ -55,7 +56,10 @@ def test_cadastrar_comDadosValidos_deveRegistrarLogDaAcao(base_url, professor):
         (usuario["id"],),
     )
     assert len(logs) == 1
-    assert f"Disciplina {base['disciplina_id']}" in logs[0][1]
+    # o log mostra os nomes (nao os numeros), para a auditoria ser legivel
+    assert base["disciplina_nome"] in logs[0][1]
+    assert base["turma_nome"] in logs[0][1]
+    assert base["professor_nome"] in logs[0][1]
 
 
 def test_cadastrar_semDisciplina_deveRetornar400ComMensagemENaoGravar(base_url, professor):
@@ -133,7 +137,7 @@ def test_listar_aposCadastrar_deveRetornar200ComNomesDaDisciplinaTurmaEProfessor
     cliente, _ = professor
     base = criar_cadastros_base()
     descricao = f"Listagem {unico()}"
-    id_atividade = criar_atividade(cliente, base_url, base, descricao, data="2026-11-13", inicio="13:00", fim="14:30")
+    id_atividade = criar_atividade(cliente, base_url, base, descricao, data=dia_futuro(3), inicio="13:00", fim="14:30")
 
     resposta = cliente.get(f"{base_url}/atividades")
 
@@ -145,9 +149,14 @@ def test_listar_aposCadastrar_deveRetornar200ComNomesDaDisciplinaTurmaEProfessor
         "turma": base["turma_nome"],
         "professor": base["professor_nome"],
         "descricao": descricao,
-        "data": "2026-11-13",
+        "data": dia_futuro(3),
         "hora_inicio": "13:00:00",
         "hora_fim": "14:30:00",
+        # ids e situacao usados pela tela para alterar/cancelar
+        "disciplina_id": base["disciplina_id"],
+        "turma_id": base["turma_id"],
+        "professor_id": base["professor_id"],
+        "ja_aconteceu": False,
     }
 
 
@@ -155,8 +164,8 @@ def test_listar_comoProfessor_deveRetornarSomenteAtividadesDoProprioUsuario(base
     cliente_a, _ = professor
     cliente_b, _ = outro_professor
     base = criar_cadastros_base()
-    id_a = criar_atividade(cliente_a, base_url, base, f"Do professor A {unico()}", data="2026-11-16")
-    id_b = criar_atividade(cliente_b, base_url, base, f"Do professor B {unico()}", data="2026-11-17")
+    id_a = criar_atividade(cliente_a, base_url, base, f"Do professor A {unico()}", data=dia_futuro(6))
+    id_b = criar_atividade(cliente_b, base_url, base, f"Do professor B {unico()}", data=dia_futuro(7))
 
     resposta = cliente_a.get(f"{base_url}/atividades")
 
@@ -173,8 +182,8 @@ def test_listar_comoCoordenador_deveRetornar200ComAtividadesDeTodosOsProfessores
     cliente_b, _ = outro_professor
     cliente_coord, _ = coordenador
     base = criar_cadastros_base()
-    id_a = criar_atividade(cliente_a, base_url, base, f"Coord ve A {unico()}", data="2026-11-18")
-    id_b = criar_atividade(cliente_b, base_url, base, f"Coord ve B {unico()}", data="2026-11-19")
+    id_a = criar_atividade(cliente_a, base_url, base, f"Coord ve A {unico()}", data=dia_futuro(8))
+    id_b = criar_atividade(cliente_b, base_url, base, f"Coord ve B {unico()}", data=dia_futuro(9))
 
     resposta = cliente_coord.get(f"{base_url}/atividades")
 

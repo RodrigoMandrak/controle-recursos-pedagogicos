@@ -25,6 +25,7 @@ from werkzeug.serving import make_server
 load_dotenv()
 
 from app import app  # noqa: E402
+from banco import atualizar_estrutura  # noqa: E402
 from apoio_integracao import (  # noqa: E402
     ESQUEMA_TESTE,
     _conectar_admin,
@@ -49,6 +50,8 @@ def banco_de_teste():
     # a partir daqui o banco.conectar() da aplicacao aponta para o banco de teste
     os.environ["DB_NAME"] = nome_teste
     consultar(ESQUEMA_TESTE)
+    # mesmas colunas que o sistema acrescenta ao ligar (estoque, status, ativo, ...)
+    atualizar_estrutura()
 
     yield nome_teste
 

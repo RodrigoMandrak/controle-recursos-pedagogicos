@@ -2,7 +2,7 @@ import os
 import smtplib
 
 from email.message import EmailMessage
-from flask import Blueprint, request, jsonify
+from flask import current_app, Blueprint, request, jsonify
 
 from models.usuario_model import buscar_usuario_email, atualizar_senha
 from models.recuperacao_model import (
@@ -97,7 +97,7 @@ def esqueci_senha():
         )
 
     except Exception as erro:
-        print("Erro ao enviar email:", erro)
+        current_app.logger.error("Erro ao enviar email de recuperacao: %s", erro)
 
         return jsonify({
             "erro": "Nao foi possivel enviar o email de recuperacao"

@@ -51,6 +51,21 @@ def buscar_recursos():
     return lista
 
 
+def nome_recurso(id_recurso):
+    # nome para log e mensagens (inclui recurso arquivado). Nunca quebra a acao principal
+    try:
+        banco = conectar()
+        cursor = banco.cursor()
+        cursor.execute("SELECT nome FROM recursos WHERE id = %s", (id_recurso,))
+        linha = cursor.fetchone()
+        cursor.close()
+        banco.close()
+    except Exception:
+        linha = None
+
+    return linha[0] if linha else f"recurso {id_recurso}"
+
+
 def buscar_recurso(id_recurso):
     banco = conectar()
     cursor = banco.cursor()
@@ -387,8 +402,6 @@ def validar_conflitos(atividade_id, recurso_id):
     professor = atividade[3]
     turma = atividade[4]
 
-    print("testando conflitos:", atividade_id, recurso_id)
-
     conflito_recurso = procurar_conflito_recurso(
         recurso_id,
         data,
@@ -397,7 +410,6 @@ def validar_conflitos(atividade_id, recurso_id):
     )
 
     if conflito_recurso:
-        print("conflito de recurso")
         return mensagem_recurso_indisponivel(conflito_recurso)
 
     conflito_professor = procurar_conflito_professor(
@@ -409,7 +421,6 @@ def validar_conflitos(atividade_id, recurso_id):
     )
 
     if conflito_professor:
-        print("conflito de professor")
         return "Esse professor ja possui uma atividade nesse horario"
 
     conflito_turma = procurar_conflito_turma(
@@ -421,7 +432,6 @@ def validar_conflitos(atividade_id, recurso_id):
     )
 
     if conflito_turma:
-        print("conflito de turma")
         return "Essa turma ja possui uma atividade nesse horario"
 
     return None

@@ -25,6 +25,8 @@ class TestCadastroPendente(unittest.TestCase):
         self.assertEqual(mock_cadastrar.call_args.kwargs["status"], "pendente")
         self.assertIn("aprovacao", resposta.get_json()["mensagem"])
 
+    @patch("controllers.usuario_controller.zerar_tentativas")
+    @patch("controllers.usuario_controller.minutos_bloqueado", return_value=0)
     @patch("controllers.usuario_controller.registrar_log")
     @patch("controllers.usuario_controller.conferir_senha", return_value=True)
     @patch("controllers.usuario_controller.buscar_usuario_email", return_value=PENDENTE)
@@ -34,6 +36,8 @@ class TestCadastroPendente(unittest.TestCase):
         self.assertEqual(resposta.status_code, 403)
         self.assertIn("aguardando aprovacao", resposta.get_json()["erro"])
 
+    @patch("controllers.usuario_controller.zerar_tentativas")
+    @patch("controllers.usuario_controller.minutos_bloqueado", return_value=0)
     @patch("controllers.usuario_controller.registrar_log")
     @patch("controllers.usuario_controller.conferir_senha", return_value=True)
     @patch("controllers.usuario_controller.buscar_usuario_email", return_value=ATIVO)
@@ -79,10 +83,12 @@ class TestSolicitacoes(unittest.TestCase):
 
 class TestProfessorNoProprioNome(unittest.TestCase):
 
+    @patch("controllers.atividade_controller.procurar_conflito_atividade", return_value=None)
+    @patch("controllers.atividade_controller.itens_ativos", return_value=True)
     @patch("controllers.atividade_controller.registrar_log")
     @patch("controllers.atividade_controller.salvar_atividade")
     @patch("controllers.atividade_controller.buscar_professor_do_usuario", return_value=7)
-    def test_professor_nao_cadastra_para_outro(self, _, mock_salvar, __):
+    def test_professor_nao_cadastra_para_outro(self, _, mock_salvar, *__):
         from datetime import date, timedelta
         amanha = (date.today() + timedelta(days=1)).isoformat()
         cliente = criar_cliente(atividade_bp, usuario_id=4, perfil="professor")

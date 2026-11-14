@@ -7,6 +7,8 @@ Fluxo real exercitado em cada teste:
 """
 
 from apoio_integracao import (
+    dia_futuro,
+    build_atividade_request,
     consultar,
     criar_alocacao,
     criar_atividade,
@@ -32,12 +34,12 @@ def test_listarRecursos_logado_deveRetornar200ComTodosOsCamposDoRecurso(base_url
     resposta = cliente.get(f"{base_url}/recursos")
 
     assert resposta.status_code == 200
-    assert {
-        "id": base["recurso_id"],
-        "nome": base["recurso_nome"],
-        "tipo": "projetor",
-        "status": "disponivel",
-    } in resposta.json()
+    # a lista tambem traz estoque e uso (quantidade, em_uso_agora, reservas_futuras)
+    recurso = next(item for item in resposta.json() if item["id"] == base["recurso_id"])
+    assert recurso["nome"] == base["recurso_nome"]
+    assert recurso["tipo"] == "projetor"
+    assert recurso["status"] == "disponivel"
+    assert recurso["quantidade"] == 1
 
 
 def test_listarRecursos_semLogin_deveRetornar401ComMensagem(base_url, cliente_anonimo):
@@ -127,18 +129,37 @@ def test_alocar_comRecursoJaOcupadoNoHorario_deveRetornar400ComMensagemDeConflit
     assert consultar("SELECT id FROM alocacoes WHERE atividade_id = %s", (id_segunda,)) == []
 
 
-def test_alocar_comProfessorComOutraAlocacaoNoHorario_deveRetornar400ComMensagemDeConflito(base_url, professor):
+def test_cadastrar_comProfessorEmOutraAtividadeNoHorario_deveRetornar400ERegistrarConflito(base_url, professor):
     cliente, _ = professor
+    base = criar_cadastros_base()
+    criar_atividade(cliente, base_url, base, f"Prof 1 {unico()}", inicio="14:00", fim="16:00")
+
+    # mesma pessoa (professor_id) dando outra aula, para outra turma, no mesmo horario:
+    # desde o cadastro o sistema ja bloqueia
+    outra_turma = consultar("INSERT INTO turmas (nome) VALUES (%s) RETURNING id", (f"Turma B {unico()}",))[0][0]
+    resposta = cliente.post(f"{base_url}/atividades", json=build_atividade_request(
+        dict(base, turma_id=outra_turma), f"Prof 2 {unico()}", inicio="15:00", fim="17:00"
+    ))
+
+    assert resposta.status_code == 400
+    assert resposta.json()["erro"] == "Esse professor ja tem outra atividade nesse horario"
+    assert consultar("SELECT COUNT(*) FROM logs WHERE acao = 'CONFLITO_BLOQUEADO'")[0][0] >= 1
+
+
+def test_alocar_comProfessorComOutraAlocacaoNoHorario_deveRetornar400ComMensagemDeConflito(base_url, professor):
+    cliente, usuario = professor
     base = criar_cadastros_base()
     id_primeira = criar_atividade(cliente, base_url, base, f"Prof 1 {unico()}", inicio="14:00", fim="16:00")
     criar_alocacao(cliente, base_url, id_primeira, base["recurso_id"], base["recurso_nome"])
 
-    # mesma pessoa (professor_id) dando outra aula, para outra turma, no mesmo horario
+    # atividade antiga gravada direto no banco (de antes da regra do cadastro):
+    # na alocacao o conflito continua sendo conferido
     outra_turma = consultar("INSERT INTO turmas (nome) VALUES (%s) RETURNING id", (f"Turma B {unico()}",))[0][0]
-    base_mesmo_professor = dict(base, turma_id=outra_turma)
-    id_segunda = criar_atividade(
-        cliente, base_url, base_mesmo_professor, f"Prof 2 {unico()}", inicio="15:00", fim="17:00"
-    )
+    id_segunda = consultar(
+        "INSERT INTO atividades (disciplina_id, turma_id, professor_id, descricao, data, hora_inicio, hora_fim, usuario_id) "
+        "VALUES (%s, %s, %s, %s, %s, '15:00', '17:00', %s) RETURNING id",
+        (base["disciplina_id"], outra_turma, base["professor_id"], f"Prof 2 {unico()}", dia_futuro(0), usuario["id"]),
+    )[0][0]
 
     resposta = cliente.post(f"{base_url}/alocacoes", json={
         "atividade_id": id_segunda,
@@ -171,7 +192,7 @@ def test_fluxo_criarAtividadeAlocarRecursoEListar_deveMostrarDadosDasEntidadesRe
     cliente, _ = professor
     base = criar_cadastros_base()
     id_atividade = criar_atividade(
-        cliente, base_url, base, f"Fluxo {unico()}", data="2026-11-20", inicio="19:00", fim="20:40"
+        cliente, base_url, base, f"Fluxo {unico()}", data=dia_futuro(10), inicio="19:00", fim="20:40"
     )
     id_alocacao = criar_alocacao(cliente, base_url, id_atividade, base["recurso2_id"], base["recurso2_nome"])
 
@@ -184,7 +205,7 @@ def test_fluxo_criarAtividadeAlocarRecursoEListar_deveMostrarDadosDasEntidadesRe
         "disciplina": base["disciplina_nome"],
         "turma": base["turma_nome"],
         "professor": base["professor_nome"],
-        "data": "2026-11-20",
+        "data": dia_futuro(10),
         "hora_inicio": "19:00:00",
         "hora_fim": "20:40:00",
         "recurso": base["recurso2_nome"],

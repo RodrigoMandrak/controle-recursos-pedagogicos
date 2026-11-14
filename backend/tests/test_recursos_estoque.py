@@ -185,10 +185,11 @@ class TestEstoqueNoConflito(unittest.TestCase):
 class TestAlocacaoComEstoque(unittest.TestCase):
 
     @patch("controllers.alocacao_controller.salvar_alocacao", return_value=False)
+    @patch("controllers.alocacao_controller.registrar_log")
     @patch("controllers.alocacao_controller.validar_conflitos", return_value=None)
     @patch("controllers.alocacao_controller.buscar_recurso", return_value=(5,))
     @patch("controllers.alocacao_controller.buscar_usuario_atividade", return_value=(1,))
-    def test_duas_pessoas_ao_mesmo_tempo(self, mock_atividade, mock_recurso, mock_conflito, mock_salvar):
+    def test_duas_pessoas_ao_mesmo_tempo(self, mock_atividade, mock_recurso, mock_conflito, mock_log, mock_salvar):
         cliente = criar_cliente(alocacao_bp, usuario_id=1, perfil="coordenador")
         resposta = cliente.post("/alocacoes", json={"atividade_id": 10, "recurso_id": 5})
         self.assertEqual(resposta.status_code, 400)

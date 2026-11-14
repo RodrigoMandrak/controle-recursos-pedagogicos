@@ -58,12 +58,13 @@ class TestLogController(unittest.TestCase):
         cliente = criar_cliente(log_bp, usuario_id=1, perfil="professor")
         self.assertEqual(cliente.get("/logs").status_code, 403)
 
+    @patch("controllers.log_controller.contar_logs", return_value=1)
     @patch("controllers.log_controller.buscar_logs", return_value=[{"id": 1, "acao": "LOGIN"}])
-    def test_coordenador_ve_logs(self, _):
+    def test_coordenador_ve_logs(self, *_):
         cliente = criar_cliente(log_bp, usuario_id=1, perfil="coordenador")
         resposta = cliente.get("/logs")
         self.assertEqual(resposta.status_code, 200)
-        self.assertEqual(resposta.get_json()[0]["acao"], "LOGIN")
+        self.assertEqual(resposta.get_json()["logs"][0]["acao"], "LOGIN")
 
 
 class TestDashboardController(unittest.TestCase):

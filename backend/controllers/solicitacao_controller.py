@@ -44,7 +44,7 @@ def aprovar(usuario_id):
         return jsonify({"erro": "Solicitacao nao encontrada"}), 404
 
     registrar_log(session["usuario_id"], "APROVACAO_CADASTRO",
-                  f"Cadastro de {nome} (usuario {usuario_id}) aprovado como professor")
+                  f"Cadastro de {nome} aprovado como professor")
 
     return jsonify({"mensagem": f"{nome} aprovado. Ja aparece na lista de professores"})
 

@@ -56,7 +56,7 @@ def aprovar_solicitacao(usuario_id):
     # se ja existe na lista um professor com o mesmo nome e sem conta, liga nele
     cursor.execute("""
         SELECT id FROM professores
-        WHERE LOWER(nome) = LOWER(%s) AND usuario_id IS NULL
+        WHERE LOWER(nome) = LOWER(%s) AND usuario_id IS NULL AND ativo = TRUE
         ORDER BY id LIMIT 1
     """, (nome,))
     existente = cursor.fetchone()

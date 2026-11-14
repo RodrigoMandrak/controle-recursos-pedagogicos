@@ -76,6 +76,10 @@ class TestLogin(unittest.TestCase):
 
     def setUp(self):
         self.log = patch(CAMINHO + "registrar_log").start()
+        # limite de tentativas: por padrao a conta esta liberada
+        self.bloqueado = patch(CAMINHO + "minutos_bloqueado", return_value=0).start()
+        self.senha_errada = patch(CAMINHO + "registrar_senha_errada", return_value=False).start()
+        self.zerar = patch(CAMINHO + "zerar_tentativas").start()
         self.addCleanup(patch.stopall)
         self.cliente = criar_cliente(usuario_bp)
 
