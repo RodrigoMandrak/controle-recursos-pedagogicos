@@ -22,6 +22,15 @@ from validacoes import TAMANHO_MAXIMO_IDENTIFICADOR
 usuario_bp = Blueprint("usuarios", __name__)
 
 
+def ip_do_cliente():
+    # no Render o pedido passa por proxies; o primeiro endereco do
+    # X-Forwarded-For e o do navegador de quem esta tentando entrar
+    encaminhado = request.headers.get("X-Forwarded-For", "")
+    if encaminhado:
+        return encaminhado.split(",")[0].strip()[:64]
+    return (request.remote_addr or "desconhecido")[:64]
+
+
 @usuario_bp.route("/usuarios/cadastro", methods=["POST"])
 def cadastrar():
     dados = request.json
@@ -106,29 +115,29 @@ def login():
             "erro": "Informe email e senha"
         }), 400
 
-    usuario = buscar_usuario_email(email)
+    # o limite de tentativas vale para o par e-mail + IP (e nao para a conta inteira):
+    # quem erra a senha de outra pessoa bloqueia so o proprio acesso
+    email_chave = str(email).strip().lower()
+    ip = ip_do_cliente()
 
-    if not usuario:
-        return jsonify({
-            "erro": "Email ou senha incorretos"
-        }), 401
-
-    # muitas senhas erradas seguidas: espera alguns minutos
-    espera = minutos_bloqueado(usuario[0])
+    espera = minutos_bloqueado(email_chave, ip)
 
     if espera:
         return jsonify({
             "erro": f"Muitas tentativas com senha errada. Tente de novo em {espera} minuto(s)"
         }), 429
 
-    senha_certa = conferir_senha(senha, usuario[3])
+    usuario = buscar_usuario_email(email)
+
+    senha_certa = bool(usuario) and conferir_senha(senha, usuario[3])
 
     if not senha_certa:
-        if registrar_senha_errada(usuario[0]):
+        # e-mail que nao existe tambem conta tentativa: a resposta e igual nos dois casos
+        if registrar_senha_errada(email_chave, ip):
             registrar_log(
-                usuario[0],
+                usuario[0] if usuario else None,
                 "LOGIN_BLOQUEADO",
-                "Conta bloqueada por 5 minutos apos 5 senhas erradas"
+                "Login bloqueado por 5 minutos apos 5 senhas erradas do mesmo computador"
             )
             return jsonify({
                 "erro": "Muitas tentativas com senha errada. Tente de novo em 5 minutos"
@@ -138,7 +147,7 @@ def login():
             "erro": "Email ou senha incorretos"
         }), 401
 
-    zerar_tentativas(usuario[0])
+    zerar_tentativas(email_chave, ip)
 
     # cadastro ainda nao aprovado pelo coordenador: nao entra
     if len(usuario) > 7 and usuario[7] == "pendente":

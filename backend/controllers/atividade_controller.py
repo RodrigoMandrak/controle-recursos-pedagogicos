@@ -211,6 +211,10 @@ def listar():
 
 @atividade_bp.route("/disciplinas", methods=["GET"])
 def listar_disciplinas():
+    # lista so para quem esta logado: os nomes nao ficam abertos na internet (LGPD)
+    if "usuario_id" not in session:
+        return jsonify({"erro": "Voce precisa estar logado"}), 401
+
     dados = buscar_disciplinas()
 
     return jsonify(dados)
@@ -218,6 +222,10 @@ def listar_disciplinas():
 
 @atividade_bp.route("/turmas", methods=["GET"])
 def listar_turmas():
+    # lista so para quem esta logado: os nomes nao ficam abertos na internet (LGPD)
+    if "usuario_id" not in session:
+        return jsonify({"erro": "Voce precisa estar logado"}), 401
+
     dados = buscar_turmas()
 
     return jsonify(dados)
@@ -234,6 +242,10 @@ def meu_professor():
 
 @atividade_bp.route("/professores", methods=["GET"])
 def listar_professores():
+    # lista so para quem esta logado: os nomes nao ficam abertos na internet (LGPD)
+    if "usuario_id" not in session:
+        return jsonify({"erro": "Voce precisa estar logado"}), 401
+
     dados = buscar_professores()
 
     return jsonify(dados)

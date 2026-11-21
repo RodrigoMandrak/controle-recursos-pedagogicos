@@ -101,10 +101,18 @@ class TestListagens(unittest.TestCase):
     @patch(CAMINHO + "buscar_turmas", return_value=[{"id": 1, "nome": "ES A"}])
     @patch(CAMINHO + "buscar_disciplinas", return_value=[{"id": 1, "nome": "IA"}])
     def test_listas_de_apoio(self, *_):
-        cliente = criar_cliente(atividade_bp)
+        cliente = criar_cliente(atividade_bp, usuario_id=1)
         self.assertEqual(cliente.get("/disciplinas").get_json()[0]["nome"], "IA")
         self.assertEqual(cliente.get("/turmas").get_json()[0]["nome"], "ES A")
         self.assertEqual(cliente.get("/professores").get_json()[0]["nome"], "Prof. Ana")
+
+    def test_listas_de_apoio_sem_login(self):
+        # nomes de professores, disciplinas e turmas nao ficam abertos sem login (LGPD)
+        cliente = criar_cliente(atividade_bp)
+        for rota in ("/disciplinas", "/turmas", "/professores"):
+            resposta = cliente.get(rota)
+            self.assertEqual(resposta.status_code, 401)
+            self.assertEqual(resposta.get_json()["erro"], "Voce precisa estar logado")
 
 
 if __name__ == "__main__":

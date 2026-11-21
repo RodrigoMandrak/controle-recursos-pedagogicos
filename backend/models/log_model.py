@@ -1,3 +1,5 @@
+import re
+
 from banco import conectar
 
 
@@ -72,6 +74,33 @@ def contar_logs(**filtros):
     return (linha[0] or 0) if linha else 0
 
 
+# e-mail e telefone que aparecem nos detalhes do log ficam parcialmente escondidos
+# na tela (LGPD): da para saber de quem e o registro sem expor o dado inteiro.
+# O texto gravado no banco nao muda; a mascara e aplicada so na hora de mostrar
+EMAIL = re.compile(r"([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+\.[A-Za-z]{2,})")
+TELEFONE = re.compile(r"(?<!\d)(?:\+?55\s?)?\(?(\d{2})\)?\s?(9?\d{4})-?(\d{4})(?!\d)")
+
+
+def mascarar_email(achado):
+    usuario, dominio = achado.group(1), achado.group(2)
+    return f"{usuario[:2]}*****@{dominio}"
+
+
+def mascarar_telefone(achado):
+    ddd, meio, final = achado.group(1), achado.group(2), achado.group(3)
+    inicio = "9" if len(meio) == 5 else ""
+    return f"({ddd}) {inicio}****-{final}"
+
+
+def mascarar_dados_pessoais(texto):
+    # ex.: "ana.souza@escola.com.br" -> "an*****@escola.com.br"
+    #      "(11) 91234-5678"         -> "(11) 9****-5678"
+    if not texto:
+        return texto
+    texto = EMAIL.sub(mascarar_email, texto)
+    return TELEFONE.sub(mascarar_telefone, texto)
+
+
 def buscar_logs(limite=20, deslocamento=0, **filtros):
     # uma pagina por vez (LIMIT/OFFSET): a tela nao trava com milhares de registros
     onde, valores = montar_filtros(**filtros)
@@ -102,7 +131,7 @@ def buscar_logs(limite=20, deslocamento=0, **filtros):
             "id": item[0],
             "usuario": item[1],
             "acao": item[2],
-            "detalhes": item[3],
+            "detalhes": mascarar_dados_pessoais(item[3]),
             "data_hora": str(item[4])
         })
 

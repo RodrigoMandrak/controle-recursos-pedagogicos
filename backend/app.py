@@ -23,6 +23,21 @@ app = Flask(__name__)
 # chave usada pela sessao do usuario
 app.secret_key = os.getenv("SECRET_KEY")
 
+# cookie da sessao:
+# - HttpOnly: o JavaScript da pagina nao consegue ler o cookie
+# - SameSite: o navegador nao manda o cookie em pedidos vindos de outros sites (CSRF).
+#   Padrao "Lax", que serve quando o front chama o back pelo /api do proprio front.
+#   Se o front chamar o back direto por outro endereco, use COOKIE_SAMESITE=None.
+# - Secure: o cookie so viaja por HTTPS. Liga sozinho no Render (variavel RENDER)
+#   e fica desligado no computador, que roda em http://localhost
+COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "Lax")
+
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE=COOKIE_SAMESITE,
+    SESSION_COOKIE_SECURE=bool(os.getenv("RENDER")) or COOKIE_SAMESITE == "None",
+)
+
 # permite que o front envie e receba a sessao
 CORS(app, supports_credentials=True)
 

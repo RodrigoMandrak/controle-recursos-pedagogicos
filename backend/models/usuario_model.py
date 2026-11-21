@@ -201,16 +201,18 @@ MAXIMO_TENTATIVAS = 5
 MINUTOS_BLOQUEIO = 5
 
 
-def minutos_bloqueado(usuario_id):
-    # quantos minutos faltam para a conta poder tentar de novo (0 = liberada)
+def minutos_bloqueado(email, ip):
+    # quantos minutos faltam para esse e-mail, vindo desse IP, poder tentar de novo (0 = liberado).
+    # O bloqueio e por e-mail + IP: quem erra a senha de outra pessoa trava so o proprio acesso,
+    # e o dono da conta continua entrando normalmente do computador dele
     banco = conectar()
     cursor = banco.cursor()
 
     cursor.execute("""
         SELECT CEIL(EXTRACT(EPOCH FROM (bloqueado_ate - NOW()::timestamp)) / 60)
-        FROM usuarios
-        WHERE id = %s AND bloqueado_ate > NOW()::timestamp
-    """, (usuario_id,))
+        FROM tentativas_login
+        WHERE email = %s AND ip = %s AND bloqueado_ate > NOW()::timestamp
+    """, (email, ip))
 
     linha = cursor.fetchone()
 
@@ -220,29 +222,33 @@ def minutos_bloqueado(usuario_id):
     return int(linha[0]) if linha and linha[0] else 0
 
 
-def registrar_senha_errada(usuario_id):
-    # soma uma tentativa errada. Na quinta, bloqueia por alguns minutos.
-    # Devolve True quando a conta acabou de ser bloqueada
+def registrar_senha_errada(email, ip):
+    # soma uma tentativa errada para esse e-mail + IP. Na quinta, bloqueia por alguns minutos.
+    # Devolve True quando acabou de bloquear
     banco = conectar()
     cursor = banco.cursor()
 
     cursor.execute(f"""
-        UPDATE usuarios
-        SET tentativas_login = tentativas_login + 1,
+        INSERT INTO tentativas_login (email, ip, tentativas, bloqueado_ate)
+        VALUES (%s, %s, 1, NULL)
+        ON CONFLICT (email, ip) DO UPDATE
+        SET tentativas = tentativas_login.tentativas + 1,
             bloqueado_ate = CASE
-                WHEN tentativas_login + 1 >= {MAXIMO_TENTATIVAS}
+                WHEN tentativas_login.tentativas + 1 >= {MAXIMO_TENTATIVAS}
                 THEN NOW()::timestamp + INTERVAL '{MINUTOS_BLOQUEIO} minutes'
-                ELSE bloqueado_ate
+                ELSE tentativas_login.bloqueado_ate
             END
-        WHERE id = %s
-        RETURNING tentativas_login
-    """, (usuario_id,))
+        RETURNING tentativas
+    """, (email, ip))
 
     linha = cursor.fetchone()
     bloqueou = bool(linha and linha[0] >= MAXIMO_TENTATIVAS)
 
     if bloqueou:
-        cursor.execute("UPDATE usuarios SET tentativas_login = 0 WHERE id = %s", (usuario_id,))
+        cursor.execute(
+            "UPDATE tentativas_login SET tentativas = 0 WHERE email = %s AND ip = %s",
+            (email, ip)
+        )
 
     banco.commit()
 
@@ -252,15 +258,14 @@ def registrar_senha_errada(usuario_id):
     return bloqueou
 
 
-def zerar_tentativas(usuario_id):
+def zerar_tentativas(email, ip):
     banco = conectar()
     cursor = banco.cursor()
 
-    cursor.execute("""
-        UPDATE usuarios
-        SET tentativas_login = 0, bloqueado_ate = NULL
-        WHERE id = %s
-    """, (usuario_id,))
+    cursor.execute(
+        "DELETE FROM tentativas_login WHERE email = %s AND ip = %s",
+        (email, ip)
+    )
 
     banco.commit()
 

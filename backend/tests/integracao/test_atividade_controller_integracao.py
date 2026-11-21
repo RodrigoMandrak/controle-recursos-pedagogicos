@@ -6,6 +6,8 @@ Fluxo real exercitado em cada teste:
     -> atividade_model -> PostgreSQL de teste
 """
 
+import pytest
+
 from apoio_integracao import (
     dia_futuro,
     build_atividade_request,
@@ -201,28 +203,40 @@ def test_listar_semLogin_deveRetornar401ComMensagem(base_url, cliente_anonimo):
 
 # ---------- GET /disciplinas, /turmas, /professores ----------
 
-def test_listarDisciplinas_comDisciplinaCadastrada_deveRetornar200ComIdENome(base_url, cliente_anonimo):
+def test_listarDisciplinas_comDisciplinaCadastrada_deveRetornar200ComIdENome(base_url, professor):
+    cliente, _ = professor
     base = criar_cadastros_base()
 
-    resposta = cliente_anonimo.get(f"{base_url}/disciplinas")
+    resposta = cliente.get(f"{base_url}/disciplinas")
 
     assert resposta.status_code == 200
     assert {"id": base["disciplina_id"], "nome": base["disciplina_nome"]} in resposta.json()
 
 
-def test_listarTurmas_comTurmaCadastrada_deveRetornar200ComIdENome(base_url, cliente_anonimo):
+def test_listarTurmas_comTurmaCadastrada_deveRetornar200ComIdENome(base_url, professor):
+    cliente, _ = professor
     base = criar_cadastros_base()
 
-    resposta = cliente_anonimo.get(f"{base_url}/turmas")
+    resposta = cliente.get(f"{base_url}/turmas")
 
     assert resposta.status_code == 200
     assert {"id": base["turma_id"], "nome": base["turma_nome"]} in resposta.json()
 
 
-def test_listarProfessores_comProfessorCadastrado_deveRetornar200ComIdENome(base_url, cliente_anonimo):
+def test_listarProfessores_comProfessorCadastrado_deveRetornar200ComIdENome(base_url, professor):
+    cliente, _ = professor
     base = criar_cadastros_base()
 
-    resposta = cliente_anonimo.get(f"{base_url}/professores")
+    resposta = cliente.get(f"{base_url}/professores")
 
     assert resposta.status_code == 200
     assert {"id": base["professor_id"], "nome": base["professor_nome"]} in resposta.json()
+
+
+@pytest.mark.parametrize("rota", ["/disciplinas", "/turmas", "/professores"])
+def test_listasDeApoio_semLogin_deveRetornar401(base_url, cliente_anonimo, rota):
+    # LGPD: sem login ninguem ve os nomes dos professores, disciplinas e turmas
+    resposta = cliente_anonimo.get(f"{base_url}{rota}")
+
+    assert resposta.status_code == 401
+    assert resposta.json()["erro"] == "Voce precisa estar logado"

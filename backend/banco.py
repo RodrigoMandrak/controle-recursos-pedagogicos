@@ -67,6 +67,18 @@ def atualizar_estrutura():
         ADD COLUMN IF NOT EXISTS bloqueado_ate TIMESTAMP
     """)
 
+    # tentativas de login por e-mail + IP (substitui o bloqueio da conta inteira,
+    # que deixava qualquer um travar a conta de outra pessoa)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tentativas_login (
+            email VARCHAR(150) NOT NULL,
+            ip VARCHAR(64) NOT NULL,
+            tentativas INTEGER NOT NULL DEFAULT 0,
+            bloqueado_ate TIMESTAMP,
+            PRIMARY KEY (email, ip)
+        )
+    """)
+
     # aprovacao de cadastro: contas antigas continuam "ativo"
     cursor.execute("""
         ALTER TABLE usuarios

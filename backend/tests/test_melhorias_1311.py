@@ -204,7 +204,7 @@ class TestLimiteDeLogin(unittest.TestCase):
 
     def test_senha_errada_conta_tentativa(self):
         self.assertEqual(self.entrar().status_code, 401)
-        self.errada.assert_called_once_with(1)
+        self.errada.assert_called_once_with("mariana@escola.com.br", "127.0.0.1")
 
     def test_quinta_senha_errada_bloqueia(self):
         self.errada.return_value = True
@@ -222,7 +222,29 @@ class TestLimiteDeLogin(unittest.TestCase):
     def test_acertou_zera(self):
         self.conferir.return_value = True
         self.assertEqual(self.entrar().status_code, 200)
-        self.zerar.assert_called_once_with(1)
+        self.zerar.assert_called_once_with("mariana@escola.com.br", "127.0.0.1")
+
+
+    def test_bloqueio_e_por_email_e_ip(self):
+        # cada computador tem a sua contagem: errar de outro IP nao trava o dono da conta
+        self.cliente.post("/login", json={"email": "Mariana@Escola.com.br", "senha": "x"},
+                          headers={"X-Forwarded-For": "200.1.2.3, 10.0.0.1"})
+        self.bloqueado.assert_called_once_with("mariana@escola.com.br", "200.1.2.3")
+        self.errada.assert_called_once_with("mariana@escola.com.br", "200.1.2.3")
+
+    def test_email_inexistente_tambem_conta_tentativa(self):
+        with patch(USU + "buscar_usuario_email", return_value=None):
+            resposta = self.entrar()
+        self.assertEqual(resposta.status_code, 401)
+        self.assertEqual(resposta.get_json()["erro"], "Email ou senha incorretos")
+        self.errada.assert_called_once()
+        self.conferir.assert_not_called()
+
+    def test_bloqueado_nem_busca_usuario(self):
+        self.bloqueado.return_value = 2
+        with patch(USU + "buscar_usuario_email") as buscar:
+            self.assertEqual(self.entrar().status_code, 429)
+        buscar.assert_not_called()
 
 
 class TestExclusaoDeConta(unittest.TestCase):
